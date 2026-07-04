@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}}</title>
+  <meta name="description" content="{{description}}" />
+  <meta name="robots" content="{{robots}}" />
+  <!-- ^ Leave this as noindex until the real brand/copy is in place, then remove it. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+  <!-- ================= AGE / COMPLIANCE GATE ================= -->
+  <div id="gate" class="gate">
+    <canvas id="smoke-canvas" class="smoke-canvas"></canvas>
+    <div class="gate-inner">
+      <div class="gate-mark" aria-hidden="true">YB</div>
+      <p class="gate-eyebrow">Wholesale access only</p>
+      <h1 class="gate-headline">Are you 21 or&nbsp;older?</h1>
+      <p class="gate-sub">YOUR BRAND is a licensed Washington State cannabis producer-processor. This site is intended for licensed retailers, prospective partners, and adults 21+.</p>
+
+      <div class="gate-warnings">
+        <p>This product has intoxicating effects and may be habit forming.</p>
+        <p>Cannabis can impair concentration, coordination, and judgment. Do not operate a vehicle or machinery under the influence of this drug.</p>
+        <p>There may be health risks associated with consumption of this product.</p>
+        <p>For use only by adults 21 and older. Keep out of the reach of children.</p>
+      </div>
+
+      <div class="gate-actions">
+        <button id="gate-enter" class="btn btn-signal" type="button">I'm 21+ — Enter site</button>
+        <a href="https://www.google.com" class="btn btn-ghost">I'm not 21</a>
+      </div>
+      <p class="gate-legal">Cannabis products may be purchased or possessed only by persons twenty-one (21) years of age or older. Not intended for residents outside Washington State.</p>
+    </div>
+  </div>
+
+  <!-- ================= MAIN SITE (hidden until gate passes) ================= -->
+  <div id="site" class="site">
+    {{header}}
+
+    <main id="top">
+      {{content}}
+    </main>
+
+    {{footer}}
+  </div>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>
