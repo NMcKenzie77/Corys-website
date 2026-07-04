@@ -15,7 +15,18 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  extensions: ['html'],
+  setHeaders: (res, filePath) => {
+    // While this site is still being iterated on, force browsers to always
+    // re-check CSS/JS instead of serving a stale cached copy after a deploy.
+    // Once the design is locked in, this can be removed (or swapped for
+    // hashed filenames) so assets cache normally for real visitors.
+    if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 
 // Wholesale inquiry form submissions land here.
 // Right now this just logs to a local file so nothing is lost during setup.
