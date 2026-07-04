@@ -64,8 +64,8 @@
         if (p.y < fadeZone) fade = Math.max(0, p.y / fadeZone);
 
         var gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-        gradient.addColorStop(0, 'rgba(244,238,221,' + (p.opacity * fade) + ')');
-        gradient.addColorStop(1, 'rgba(244,238,221,0)');
+        gradient.addColorStop(0, 'rgba(200,255,205,' + (p.opacity * fade) + ')');
+        gradient.addColorStop(1, 'rgba(200,255,205,0)');
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
