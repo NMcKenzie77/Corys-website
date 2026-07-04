@@ -273,7 +273,7 @@ button { font-family: inherit; }
 .marquee-track {
   display: inline-block;
   padding-left: 100%;
-  animation: marquee 26s linear infinite;
+  animation: marquee 48s linear infinite;
   font-family: var(--font-display);
   font-size: .82rem;
   letter-spacing: .08em;
