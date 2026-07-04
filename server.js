@@ -5,6 +5,17 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const VIEWS_DIR = path.join(__dirname, 'views');
+const PAGES_DIR = path.join(VIEWS_DIR, 'pages');
+const PARTIALS_DIR = path.join(VIEWS_DIR, 'partials');
+
+const DEFAULT_META = {
+  title: 'YOUR BRAND | Washington Wholesale Cannabis — Flower, Edibles, Vapes, Concentrates',
+  description: 'YOUR BRAND is a Washington-licensed producer-processor supplying flower, edibles, vapes, and concentrates to licensed retailers statewide.',
+  robots: 'noindex, nofollow'
+};
+
 app.use(express.json());
 
 // Basic hardening headers — no extra dependency needed for a site this size.
@@ -15,7 +26,92 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public'), {
+function readView(relativePath) {
+  return fs.readFileSync(path.join(VIEWS_DIR, relativePath), 'utf8');
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parsePageContent(rawContent) {
+  const meta = { ...DEFAULT_META };
+  let content = rawContent;
+
+  const metaMatch = rawContent.match(/^\s*<!--([\s\S]*?)-->/);
+  if (metaMatch) {
+    const lines = metaMatch[1].split('\n');
+    let hasMetadata = false;
+
+    lines.forEach((line) => {
+      const match = line.match(/^\s*(title|description|robots):\s*(.*?)\s*$/i);
+      if (!match) return;
+      hasMetadata = true;
+      meta[match[1].toLowerCase()] = match[2];
+    });
+
+    if (hasMetadata) {
+      content = rawContent.slice(metaMatch[0].length).trimStart();
+    }
+  }
+
+  return { meta, content };
+}
+
+function renderPage(pageSlug) {
+  const safeSlug = pageSlug === '' ? 'index' : pageSlug;
+
+  if (!/^[a-z0-9-]+$/.test(safeSlug)) {
+    return null;
+  }
+
+  const pagePath = path.join(PAGES_DIR, `${safeSlug}.html`);
+
+  if (!fs.existsSync(pagePath)) {
+    return null;
+  }
+
+  const layout = readView('layout.html');
+  const header = fs.readFileSync(path.join(PARTIALS_DIR, 'header.html'), 'utf8');
+  const footer = fs.readFileSync(path.join(PARTIALS_DIR, 'footer.html'), 'utf8');
+  const rawPage = fs.readFileSync(pagePath, 'utf8');
+  const { meta, content } = parsePageContent(rawPage);
+
+  return layout
+    .replace('{{title}}', escapeHtml(meta.title))
+    .replace('{{description}}', escapeHtml(meta.description))
+    .replace('{{robots}}', escapeHtml(meta.robots))
+    .replace('{{header}}', header)
+    .replace('{{content}}', content)
+    .replace('{{footer}}', footer);
+}
+
+app.get('/healthz', (req, res) => res.status(200).send('ok'));
+
+app.get('/', (req, res) => {
+  const html = renderPage('index');
+  res.type('html').send(html);
+});
+
+// Automatic page routing.
+// Add `views/pages/about.html` and it becomes available at `/about`.
+// Add `views/pages/products.html` and it becomes available at `/products`.
+app.get('/:page', (req, res, next) => {
+  const html = renderPage(req.params.page);
+
+  if (!html) {
+    return next();
+  }
+
+  res.type('html').send(html);
+});
+
+app.use(express.static(PUBLIC_DIR, {
   extensions: ['html'],
   setHeaders: (res, filePath) => {
     // While this site is still being iterated on, force browsers to always
@@ -60,7 +156,9 @@ app.post('/api/inquiry', (req, res) => {
   });
 });
 
-app.get('/healthz', (req, res) => res.status(200).send('ok'));
+app.use((req, res) => {
+  res.status(404).type('html').send(renderPage('404') || '<h1>Page not found</h1>');
+});
 
 app.listen(PORT, () => {
   console.log(`Wholesale site running on port ${PORT}`);
