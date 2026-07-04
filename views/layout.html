@@ -6,11 +6,26 @@
   <title>{{title}}</title>
   <meta name="description" content="{{description}}" />
   <meta name="robots" content="{{robots}}" />
-  <!-- ^ Leave this as noindex until the real brand/copy is in place, then remove it. -->
+  <link rel="canonical" href="{{canonicalUrl}}" />
+
+  <meta property="og:site_name" content="{{siteName}}" />
+  <meta property="og:type" content="{{ogType}}" />
+  <meta property="og:title" content="{{ogTitle}}" />
+  <meta property="og:description" content="{{ogDescription}}" />
+  <meta property="og:url" content="{{canonicalUrl}}" />
+  {{ogImageTag}}
+
+  <meta name="twitter:card" content="{{twitterCard}}" />
+  <meta name="twitter:title" content="{{ogTitle}}" />
+  <meta name="twitter:description" content="{{ogDescription}}" />
+  {{twitterImageTag}}
+
+  <meta name="theme-color" content="#0B0D0B" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/styles.css" />
+  <script type="application/ld+json">{{jsonLd}}</script>
 </head>
 <body>
 
@@ -21,7 +36,7 @@
       <div class="gate-mark" aria-hidden="true">YB</div>
       <p class="gate-eyebrow">Wholesale access only</p>
       <h1 class="gate-headline">Are you 21 or&nbsp;older?</h1>
-      <p class="gate-sub">YOUR BRAND is a licensed Washington State cannabis producer-processor. This site is intended for licensed retailers, prospective partners, and adults 21+.</p>
+      <p class="gate-sub">{{siteName}} is a licensed Washington State cannabis producer-processor. This site is intended for licensed retailers, prospective partners, and adults 21+.</p>
 
       <div class="gate-warnings">
         <p>This product has intoxicating effects and may be habit forming.</p>
