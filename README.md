@@ -8,7 +8,7 @@ The site now uses one shared layout instead of duplicating the header and footer
 
 Shared files:
 
-- `views/layout.html` — the master page shell. It loads the CSS, fonts, age gate, shared header, page content, shared footer, and JavaScript.
+- `views/layout.html` — the master page shell. It loads the CSS, fonts, SEO metadata, age gate, shared header, page content, shared footer, and JavaScript.
 - `views/partials/header.html` — the single source for the navigation/header and scrolling crawler.
 - `views/partials/footer.html` — the single source for the footer and compliance language.
 - `public/css/styles.css` — the single source for the site styling and color palette.
@@ -17,6 +17,7 @@ Shared files:
 Page files:
 
 - `views/pages/index.html` — homepage content only.
+- `views/pages/404.html` — shared-layout 404 page.
 
 To add a new page, create a new file in `views/pages/` using a lowercase slug name:
 
@@ -34,21 +35,76 @@ Then visit:
 /retailers
 ```
 
-The server automatically wraps that page with the shared layout, header, CSS, JavaScript, age gate, and footer.
+The server automatically wraps that page with the shared layout, header, CSS, JavaScript, age gate, footer, SEO tags, and canonical URL.
+
+## SEO system
+
+The site now generates SEO-critical tags from one renderer in `server.js`:
+
+- `<title>`
+- meta description
+- robots directive
+- canonical URL
+- Open Graph tags
+- Twitter card tags
+- JSON-LD structured data
+- `/robots.txt`
+- `/sitemap.xml`
+- 301 redirects for trailing slash cleanup
+
+The sitemap is generated automatically from every file in `views/pages/`, except `404.html` and pages marked `noindex`.
 
 ## Optional page metadata
 
-At the top of any page file, you can add metadata inside an HTML comment:
+At the top of any page file, add metadata inside an HTML comment:
 
 ```html
 <!--
 title: About YOUR BRAND | Washington Wholesale Cannabis
 description: Learn about YOUR BRAND and its Washington wholesale cannabis operation.
-robots: noindex, nofollow
+robots: index, follow
+ogTitle: About YOUR BRAND
+ogDescription: Washington wholesale cannabis producer-processor.
+ogImage: /assets/og-image.jpg
+schemaType: Organization
+changefreq: monthly
+priority: 0.7
 -->
 ```
 
+Supported metadata keys:
+
+- `title`
+- `description`
+- `robots`
+- `canonical`
+- `ogTitle`
+- `ogDescription`
+- `ogImage`
+- `ogType`
+- `twitterCard`
+- `schemaType`
+- `changefreq`
+- `priority`
+
 If metadata is not provided, the site uses the default title, description, and robots setting from `server.js`.
+
+## Environment variables
+
+Set these in Railway when the real brand/domain is ready:
+
+```txt
+SITE_NAME=Real Brand Name
+SITE_URL=https://www.realbranddomain.com
+OG_IMAGE=/assets/og-image.jpg
+ENABLE_INDEXING=true
+```
+
+To temporarily block indexing while the site still has placeholder copy:
+
+```txt
+ENABLE_INDEXING=false
+```
 
 ## Running locally
 
@@ -65,8 +121,9 @@ Visit `http://localhost:3000`.
 2. **Logo mark** — the `YB` letter badges in the layout/header/footer are placeholders. Swap for a real logo once it exists.
 3. **`[LICENSE #]`** — real WA UBI/license number in `views/partials/footer.html`.
 4. **`[EMAIL]` / `[PHONE]` / `[ADDRESS]`** — real contact info in `views/pages/index.html`.
-5. **`noindex, nofollow`** — remove or change this once real brand copy is in place and the site is ready to be found on Google.
+5. **Brand/domain environment variables** — set `SITE_NAME` and `SITE_URL` in Railway.
 6. **Category copy** — the Flower/Edibles/Vapes/Concentrates descriptions are generic placeholders. Swap in real product line details.
+7. **Social image** — add an Open Graph image and set `OG_IMAGE`.
 
 ## Wholesale inquiry form
 
