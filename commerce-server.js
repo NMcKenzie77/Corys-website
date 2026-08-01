@@ -8,6 +8,7 @@ const { initDatabase, pool } = require('./db');
 const { registerCommerce } = require('./commerce-api');
 const { ensureMarketingSchema, registerMarketing, startMarketingWorker } = require('./marketing-api');
 const { ensureCrmSchema, registerCrm } = require('./crm-api');
+const { ensureCrmOrderSync } = require('./crm-order-sync');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -106,7 +107,7 @@ app.use((error, _req, res, _next) => {
 });
 app.use((req, res) => res.status(404).type('html').send(render('404', req, 404) || '<h1>Page not found</h1>'));
 
-initDatabase().then(ensureMarketingSchema).then(ensureCrmSchema).then(() => {
+initDatabase().then(ensureMarketingSchema).then(ensureCrmSchema).then(ensureCrmOrderSync).then(() => {
   startMarketingWorker();
   app.listen(PORT, () => console.log(`${SITE_NAME} commerce running on ${PORT}`));
 }).catch((error) => { console.error('Startup failed:', error); process.exit(1); });
