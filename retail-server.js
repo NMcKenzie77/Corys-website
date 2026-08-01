@@ -8,6 +8,7 @@ const { initDatabase, pool } = require('./db');
 const { ensureComplianceSchema, registerCompliance } = require('./compliance-api');
 const { ensureRetailSchema, registerRetailApi, startRetailAutomationWorker, storeConfig } = require('./retail-api');
 const { ensureRetailLegalSchema, registerRetailLegalControls } = require('./retail-legal-controls');
+const { registerRetailComplianceApi } = require('./retail-compliance-api');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -76,6 +77,7 @@ app.use((req, res, next) => {
 
 registerCompliance(app);
 registerRetailLegalControls(app);
+registerRetailComplianceApi(app);
 registerRetailApi(app);
 
 app.use(express.static(PUBLIC, {
@@ -125,7 +127,7 @@ const PAGE_META = {
   menu: {
     route: '/menu',
     title: `Cannabis Menu | ${SITE_NAME}`,
-    description: `Browse live flower, pre-rolls, concentrates, vapes, edibles, and other products. Online reservation only; payment and final sale occur in store.`,
+    description: 'Browse live flower, pre-rolls, concentrates, vapes, edibles, and other products. Online reservation only; payment and final sale occur in store.',
     schemaType: 'CollectionPage',
     index: true
   },
@@ -233,8 +235,8 @@ function render(name, req, status = 200) {
     ...values,
     title: esc(meta.title),
     description: esc(meta.description),
-    canonicalUrl: esc(pageUrl),
     robots,
+    canonicalUrl: esc(pageUrl),
     ogTitle: esc(meta.title),
     ogDescription: esc(meta.description),
     ogImageTag: OG_IMAGE ? `<meta property="og:image" content="${esc(OG_IMAGE)}">` : '',
