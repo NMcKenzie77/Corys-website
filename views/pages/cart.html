@@ -44,9 +44,34 @@ priority: 0.2
         <label>ZIP code<input name="postalCode" autocomplete="postal-code" required /></label>
       </div>
       <label>Delivery or order notes<textarea name="notes" rows="4" placeholder="Receiving hours, loading instructions, buyer notes, or other lawful fulfillment details"></textarea></label>
+      <label class="license-confirmation"><input type="checkbox" name="marketingConsent" /><span>Send this business wholesale availability, product launches, restock notices, and other marketing emails. We can unsubscribe at any time.</span></label>
       <label class="license-confirmation"><input type="checkbox" name="licenseConfirmed" value="true" required /><span>I confirm that the ordering business and delivery destination are authorized Washington cannabis licensees and that the information provided is accurate.</span></label>
       <button class="btn btn-signal btn-full" type="submit" data-order-submit>Submit wholesale order</button>
       <p class="checkout-status" data-checkout-status role="status"></p>
     </form>
   </div>
 </section>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.querySelector('[data-checkout-form]');
+  if (!form) return;
+  form.addEventListener('submit', function () {
+    if (!form.elements.marketingConsent || !form.elements.marketingConsent.checked) return;
+    var payload = {
+      businessName: form.elements.businessName.value,
+      contactName: form.elements.contactName.value,
+      email: form.elements.email.value,
+      licenseNumber: form.elements.licenseNumber.value,
+      state: 'WA',
+      emailOptIn: true
+    };
+    fetch('/api/marketing/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(function (error) {
+      console.error('Marketing subscription failed:', error);
+    });
+  });
+});
+</script>
