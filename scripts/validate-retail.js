@@ -44,7 +44,7 @@ forbidText('retail-server.js', 'registerMarketing(', 'wholesale marketing must n
 requireText('retail-server.js', "mode: 'WASHINGTON_RETAIL_PICKUP_ONLY'", 'health check must identify pickup-only retail mode');
 requireText('retail-server.js', "app.get('/menu'", 'public menu route is required');
 requireText('retail-server.js', "app.get('/pickup'", 'pickup reservation route is required');
-requireText('retail-server.js', "Disallow: /pickup", 'pickup checkout must stay out of the sitemap/index');
+requireText('retail-server.js', 'Disallow: /pickup', 'pickup checkout must stay out of the sitemap/index');
 
 const layout = read('views/retail/layout.html');
 [
@@ -83,8 +83,8 @@ const legal = read('retail-legal-controls.js');
 });
 
 requireText('views/retail/admin.html', 'name="advertisingReviewed"', 'staff must approve advertising compliance before activation');
-requireText('views/retail/admin.html', 'data-v="acquisitionCost"', 'staff must record acquisition cost');
-requireText('views/retail/admin.html', 'data-v="limitCategory"', 'staff must assign purchase-limit category');
+requireText('public/js/retail-admin.js', 'data-v="acquisitionCost"', 'staff must record acquisition cost');
+requireText('public/js/retail-admin.js', 'data-v="limitCategory"', 'staff must assign purchase-limit category');
 requireText('views/retail/admin.html', 'name="idVerified"', 'staff completion form must record in-person ID verification');
 requireText('views/retail/admin.html', 'name="posReceiptNumber"', 'staff completion form must record POS receipt');
 
