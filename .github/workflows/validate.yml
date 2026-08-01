@@ -1,11 +1,11 @@
-name: Validate wholesale platform
+name: Validate dispensary retail platform
 
 on:
   pull_request:
   push:
     branches:
       - main
-      - agent/wholesale-commerce-mvp
+      - agent/dispensary-retail-pivot
 
 jobs:
   validate:
@@ -24,28 +24,25 @@ jobs:
 
       - name: Validate server JavaScript
         run: |
-          node --check commerce-server.js
-          node --check commerce-api.js
-          node --check marketing-api.js
-          node --check crm-api.js
-          node --check crm-order-sync.js
-          node --check automation-api.js
+          node --check retail-server.js
+          node --check retail-api.js
+          node --check retail-legal-controls.js
+          node --check retail-compliance-api.js
           node --check compliance-api.js
           node --check auth.js
           node --check db.js
-          node --check scripts/validate-site.js
+          node --check scripts/validate-retail.js
 
       - name: Validate browser JavaScript
         run: |
-          node --check public/js/main.js
-          node --check public/js/commerce.js
-          node --check public/js/admin.js
-          node --check public/js/marketing.js
-          node --check public/js/crm.js
-          node --check public/js/automations.js
-          node --check public/js/compliance.js
-          node --check public/js/privacy.js
-          node --check public/js/checkout-consent.js
+          node --check public/js/retail-site.js
+          node --check public/js/retail-menu.js
+          node --check public/js/retail-pickup.js
+          node --check public/js/retail-privacy.js
+          node --check public/js/retail-admin.js
 
-      - name: Validate search and CRM compliance controls
-        run: node scripts/validate-site.js
+      - name: Validate retail legal structure
+        run: node scripts/validate-retail.js
+
+      - name: Confirm production entry point
+        run: node -e "const p=require('./package.json');if(p.scripts.start!=='node retail-server.js')process.exit(1)"
