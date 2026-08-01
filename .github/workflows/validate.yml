@@ -1,0 +1,41 @@
+name: Validate wholesale platform
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - agent/wholesale-commerce-mvp
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Validate server JavaScript
+        run: |
+          node --check commerce-server.js
+          node --check commerce-api.js
+          node --check marketing-api.js
+          node --check crm-api.js
+          node --check auth.js
+          node --check db.js
+
+      - name: Validate browser JavaScript
+        run: |
+          node --check public/js/main.js
+          node --check public/js/commerce.js
+          node --check public/js/admin.js
+          node --check public/js/marketing.js
+          node --check public/js/crm.js
