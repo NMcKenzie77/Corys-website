@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{title}}</title>
+  <meta name="description" content="{{description}}">
+  <meta name="robots" content="{{robots}}">
+  <link rel="canonical" href="{{canonicalUrl}}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{siteName}}">
+  <meta property="og:title" content="{{ogTitle}}">
+  <meta property="og:description" content="{{ogDescription}}">
+  <meta property="og:url" content="{{canonicalUrl}}">
+  {{ogImageTag}}
+  {{googleVerificationTag}}
+  <meta name="theme-color" content="#11130f">
+  <link rel="stylesheet" href="/css/dispensary.css">
+  <script type="application/ld+json">{{jsonLd}}</script>
+</head>
+<body>
+  <div class="age-gate" data-age-gate>
+    <div class="age-card" role="dialog" aria-modal="true" aria-labelledby="age-title">
+      <span class="age-mark">21+</span>
+      <p class="eyebrow">Licensed Washington cannabis retailer</p>
+      <h1 id="age-title">Are you 21 or older?</h1>
+      <p>This site displays cannabis products intended for adults in Washington. A valid, unexpired government-issued ID is required at pickup.</p>
+      <div class="age-actions">
+        <button class="button primary" type="button" data-age-enter>Yes, enter</button>
+        <a class="button secondary" href="https://www.google.com">No, leave</a>
+      </div>
+      <p class="small">No cannabis is sold online. Reservations must be paid for and completed inside the licensed store.</p>
+    </div>
+  </div>
+
+  <div class="site-shell" data-site-shell>
+    <header class="site-header">
+      <a class="brand" href="/">{{siteName}}</a>
+      <nav aria-label="Primary navigation">
+        <a href="/menu">Menu</a>
+        <a href="/#visit">Visit</a>
+        <a href="/pickup" class="cart-link">Pickup reservation <span data-cart-count>0</span></a>
+      </nav>
+    </header>
+
+    <div class="legal-strip">
+      <strong>21+ only.</strong>
+      <span>Online reservation only. No online cannabis payment, shipping, or delivery. Final sale occurs inside the licensed store after ID verification.</span>
+    </div>
+
+    <main>{{content}}</main>
+
+    <footer class="site-footer">
+      <div class="footer-grid">
+        <div>
+          <a class="brand footer-brand" href="/">{{siteName}}</a>
+          <p>{{businessAddress}}</p>
+          <p>{{businessPhone}} · {{businessEmail}}</p>
+          <p>{{storeHours}}</p>
+          <p>Washington cannabis retail license: {{businessLicenseNumber}}</p>
+        </div>
+        <nav aria-label="Legal navigation">
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="/accessibility">Accessibility</a>
+          <a href="/admin">Staff</a>
+        </nav>
+      </div>
+
+      <section class="required-warnings" aria-label="Required cannabis warnings">
+        <p>This product has intoxicating effects and may be habit forming.</p>
+        <p>Cannabis can impair concentration, coordination, and judgment. Do not operate a vehicle or machinery under the influence of this drug.</p>
+        <p>There may be health risks associated with consumption of this product.</p>
+        <p>For use only by adults 21 and older. Keep out of the reach of children.</p>
+      </section>
+      <p class="footer-note">This website is directed to Washington adults and does not offer interstate sales, shipping, home delivery, or online cannabis payment.</p>
+    </footer>
+  </div>
+
+  <script src="/js/retail-site.js"></script>
+  <script src="/js/retail-menu.js"></script>
+  <script src="/js/retail-pickup.js"></script>
+  <script src="/js/retail-privacy.js"></script>
+</body>
+</html>
