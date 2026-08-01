@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{{siteName}} Staff</title>
+  <link rel="stylesheet" href="/css/dispensary.css">
+</head>
+<body class="admin-body">
+  <div class="admin-login" data-admin-login>
+    <form class="login-card" data-admin-login-form>
+      <p class="eyebrow">{{siteName}}</p>
+      <h1>Store operations</h1>
+      <p>Manage the menu, pickup reservations, customers, marketing, automation, and privacy requests.</p>
+      <label class="field"><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+      <button class="button dark" type="submit">Sign in</button>
+      <p class="status" data-admin-login-status></p>
+    </form>
+  </div>
+
+  <div class="admin-shell" data-admin-shell hidden>
+    <aside class="admin-sidebar">
+      <a class="brand" href="/">{{siteName}}</a>
+      <nav>
+        <button class="active" type="button" data-admin-nav="dashboard">Dashboard</button>
+        <button type="button" data-admin-nav="products">Menu products</button>
+        <button type="button" data-admin-nav="orders">Pickup orders</button>
+        <button type="button" data-admin-nav="customers">Customers</button>
+        <button type="button" data-admin-nav="campaigns">Campaigns</button>
+        <button type="button" data-admin-nav="automations">Automations</button>
+        <button type="button" data-admin-nav="compliance">Compliance</button>
+      </nav>
+      <div class="actions"><a class="button secondary" href="/menu" target="_blank" rel="noopener">View menu</a><button class="button secondary" type="button" data-admin-logout>Sign out</button></div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-top"><div><p class="eyebrow">Dispensary operations</p><h1 data-admin-title>Dashboard</h1></div><strong data-admin-email></strong></header>
+
+      <section data-admin-panel="dashboard">
+        <div class="metrics">
+          <article class="metric"><span>Active products</span><strong data-metric="active_products">—</strong></article>
+          <article class="metric"><span>Units available</span><strong data-metric="units_available">—</strong></article>
+          <article class="metric"><span>Open pickups</span><strong data-metric="open_orders">—</strong></article>
+          <article class="metric"><span>Customers</span><strong data-metric="customers">—</strong></article>
+          <article class="metric"><span>Open alerts</span><strong data-metric="open_alerts">—</strong></article>
+        </div>
+        <div class="admin-section warning-box">
+          <h2>Retail-only operating rule</h2>
+          <p>The website may accept pickup reservations. It may not take cannabis payment online, ship products, or deliver to customers. Complete a sale only after in-store ID verification and POS payment.</p>
+          <p><strong>Store:</strong> {{businessAddress}} · {{storeHours}} · License {{businessLicenseNumber}}</p>
+        </div>
+      </section>
+
+      <section data-admin-panel="products" hidden>
+        <div class="admin-actions"><div><p class="eyebrow">Live menu</p><h2>Products, packages, prices, and inventory</h2></div><button class="button dark" type="button" data-new-product>New product</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Packages</th><th>Inventory</th><th>Advertising review</th><th>Status</th></tr></thead><tbody data-products-table></tbody></table></div>
+      </section>
+
+      <section data-admin-panel="orders" hidden>
+        <div class="admin-actions"><div><p class="eyebrow">Pickup queue</p><h2>Reservations and in-store completion</h2></div><select data-order-status-filter><option value="">All statuses</option><option>NEW</option><option>CONFIRMED</option><option>PICKING</option><option>READY</option><option>COMPLETED</option><option>CANCELLED</option><option>EXPIRED</option></select></div>
+        <div class="table-wrap"><table><thead><tr><th>Order</th><th>Customer</th><th>Pickup</th><th>Total</th><th>Status</th><th>Created</th></tr></thead><tbody data-orders-table></tbody></table></div>
+      </section>
+
+      <section data-admin-panel="customers" hidden>
+        <div class="admin-actions"><div><p class="eyebrow">Customer CRM</p><h2>Pickup history and consent</h2></div><input type="search" placeholder="Search name, email, or phone" data-customer-search></div>
+        <div class="table-wrap"><table><thead><tr><th>Customer</th><th>Contact</th><th>Orders</th><th>Spend</th><th>Marketing</th><th>Last order</th></tr></thead><tbody data-customers-table></tbody></table></div>
+      </section>
+
+      <section data-admin-panel="campaigns" hidden>
+        <div class="admin-actions"><div><p class="eyebrow">Washington 21+ marketing</p><h2>Create drafts and approve sends</h2></div></div>
+        <div class="pickup-layout">
+          <form class="panel" data-campaign-form>
+            <label class="field"><span>Internal name</span><input name="name" required></label>
+            <label class="field"><span>Subject</span><input name="subject" required maxlength="200"></label>
+            <label class="field"><span>Headline</span><input name="headline" required maxlength="240"></label>
+            <label class="field"><span>Message</span><textarea name="bodyText" rows="6" required maxlength="10000"></textarea></label>
+            <label class="field"><span>Audience</span><select name="segment"><option value="ALL_SUBSCRIBERS">All WA subscribers</option><option value="CUSTOMERS">Customers</option><option value="LAPSED_60_DAYS">Lapsed 60+ days</option><option value="CATEGORY_BUYERS">Category buyers</option></select></label>
+            <label class="field"><span>Category value</span><input name="segmentValue" placeholder="Required only for category buyers"></label>
+            <label class="field"><span>Button label</span><input name="ctaLabel" value="View menu"></label>
+            <label class="field"><span>Button URL</span><input name="ctaUrl" value="/menu"></label>
+            <div class="notice">The system inserts the four Washington warnings, 21+ language, postal address, and unsubscribe link. Sending remains a manual approval action.</div>
+            <button class="button dark" type="submit">Save draft</button><p class="status" data-campaign-status></p>
+          </form>
+          <div><div class="table-wrap"><table><thead><tr><th>Campaign</th><th>Audience</th><th>Status</th><th>Recipients</th><th>Sent</th><th>Action</th></tr></thead><tbody data-campaigns-table></tbody></table></div></div>
+        </div>
+      </section>
+
+      <section data-admin-panel="automations" hidden>
+        <div class="admin-actions"><div><p class="eyebrow">Operations automation</p><h2>Alerts and controlled drafts</h2></div><button class="button secondary" type="button" data-refresh-automations>Refresh</button></div>
+        <div class="pickup-layout"><div><h3>Rules</h3><div data-rules-list></div></div><div><h3>Open alerts</h3><div data-alerts-list></div></div></div>
+      </section>
+
+      <section data-admin-panel="compliance" hidden>
+        <div class="admin-actions"><div><p class="eyebrow">Compliance center</p><h2>Readiness, consents, and privacy requests</h2></div><button class="button secondary" type="button" data-refresh-compliance>Refresh</button></div>
+        <div class="metrics"><article class="metric"><span>Open requests</span><strong data-compliance-metric="open_requests">—</strong></article><article class="metric"><span>Completed requests</span><strong data-compliance-metric="completed_requests">—</strong></article><article class="metric"><span>Consent records</span><strong data-compliance-metric="consent_records">—</strong></article><article class="metric"><span>Unique contacts</span><strong data-compliance-metric="unique_people">—</strong></article><article class="metric"><span>Search ready</span><strong data-compliance-ready>—</strong></article></div>
+        <div class="admin-section table-wrap"><table><thead><tr><th>Reference</th><th>Type</th><th>Requester</th><th>Status</th><th>Received</th><th>Action</th></tr></thead><tbody data-privacy-requests-table></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" data-product-modal hidden><div class="modal-card"><div class="modal-head"><div><p class="eyebrow">Menu product</p><h2 data-product-modal-title>New product</h2></div><button class="close" type="button" data-close-product aria-label="Close">×</button></div>
+    <form data-product-form><input type="hidden" name="productId"><div class="form-grid">
+      <label class="field"><span>Name</span><input name="name" required></label><label class="field"><span>Slug</span><input name="slug"></label>
+      <label class="field"><span>Brand</span><input name="brand"></label><label class="field"><span>Category</span><input name="category" required placeholder="Flower, Pre-rolls, Edibles..."></label>
+      <label class="field"><span>Product form</span><input name="productForm"></label><label class="field"><span>Strain type</span><input name="strainType"></label>
+      <label class="field"><span>THC label</span><input name="thcText"></label><label class="field"><span>CBD label</span><input name="cbdText"></label>
+      <label class="field span-two"><span>Description</span><textarea name="description" rows="4"></textarea></label>
+      <label class="field"><span>Image URL</span><input name="imageUrl" type="url"></label><label class="field"><span>Lab document URL</span><input name="labUrl" type="url"></label>
+      <label class="field"><span>Vendor</span><input name="vendorName"></label><label class="field"><span>Sort order</span><input name="sortOrder" type="number" value="0"></label>
+    </div>
+    <div class="actions"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-product-image><button class="button secondary" type="button" data-upload-product-image>Upload image</button><span data-upload-status></span></div>
+    <div class="admin-actions"><h3>Packages</h3><button class="button secondary" type="button" data-add-variant>Add package</button></div><div data-variant-list></div>
+    <label class="check"><input type="checkbox" name="advertisingReviewed" required><span>I reviewed the product name, description, and image. They contain no curative claims, youth targeting, cartoons, toys, or other content especially appealing to people under 21.</span></label>
+    <label class="check"><input type="checkbox" name="featured"><span>Featured</span></label><label class="check"><input type="checkbox" name="active" checked><span>Visible on live menu</span></label>
+    <div class="actions"><button class="button secondary" type="button" data-close-product>Cancel</button><button class="button dark" type="submit">Save product</button></div><p class="status" data-product-status></p>
+    </form></div></div>
+
+  <div class="modal" data-order-modal hidden><div class="modal-card"><div class="modal-head"><div><p class="eyebrow">Pickup order</p><h2 data-order-modal-title>Order</h2></div><button class="close" type="button" data-close-order aria-label="Close">×</button></div><div data-order-detail></div>
+    <form data-order-form><input type="hidden" name="orderId"><div class="form-grid"><label class="field"><span>Next status</span><select name="status" required><option>NEW</option><option>CONFIRMED</option><option>PICKING</option><option>READY</option><option>COMPLETED</option><option>CANCELLED</option><option>EXPIRED</option></select></label><label class="field"><span>In-store payment provider</span><input name="paymentProvider" placeholder="Cash, Safe Harbor, POS provider..."></label><label class="field"><span>POS receipt number</span><input name="posReceiptNumber"></label><label class="field"><span>Status note</span><input name="note"></label><label class="field span-two"><span>Internal notes</span><textarea name="internalNotes" rows="3"></textarea></label></div>
+      <label class="check"><input type="checkbox" name="idVerified"><span>I verified an acceptable, unexpired government-issued ID in person. Required before COMPLETED.</span></label>
+      <div class="actions"><button class="button dark" type="submit">Update order</button></div><p class="status" data-order-status></p></form></div></div>
+
+  <div class="modal" data-customer-modal hidden><div class="modal-card"><div class="modal-head"><div><p class="eyebrow">Customer</p><h2 data-customer-modal-title>Customer</h2></div><button class="close" type="button" data-close-customer aria-label="Close">×</button></div><div data-customer-detail></div><form data-customer-form><input type="hidden" name="customerId"><label class="field"><span>Internal notes</span><textarea name="notes" rows="4"></textarea></label><label class="check"><input type="checkbox" name="marketingOptIn"><span>Documented optional marketing consent</span></label><label class="check"><input type="checkbox" name="marketingState" value="WA"><span>Washington residency documented for marketing</span></label><button class="button dark" type="submit">Save customer</button><p class="status" data-customer-status></p></form></div></div>
+
+  <div class="modal" data-request-modal hidden><div class="modal-card"><div class="modal-head"><div><p class="eyebrow">Privacy request</p><h2 data-request-title>Request</h2></div><button class="close" type="button" data-close-request aria-label="Close">×</button></div><div data-request-detail></div><form data-request-form><input type="hidden" name="requestId"><label class="field"><span>Status</span><select name="status"><option>OPEN</option><option>VERIFYING</option><option>IN_PROGRESS</option><option>COMPLETED</option><option>DENIED</option></select></label><label class="field"><span>Verification notes</span><textarea name="verificationNotes" rows="3"></textarea></label><label class="field"><span>Resolution notes</span><textarea name="resolutionNotes" rows="3"></textarea></label><button class="button dark" type="submit">Update request</button><p class="status" data-request-status></p></form></div></div>
+
+  <script src="/js/retail-admin.js"></script>
+</body>
+</html>
