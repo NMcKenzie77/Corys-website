@@ -6,9 +6,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "check": "node --check server.js && node --check db.js && node --check auth.js && node --check public/js/commerce.js && node --check public/js/admin.js"
+    "start": "node commerce-server.js",
+    "dev": "node commerce-server.js",
+    "check": "node --check commerce-server.js && node --check commerce-api.js && node --check db.js && node --check auth.js && node --check public/js/commerce.js && node --check public/js/admin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
