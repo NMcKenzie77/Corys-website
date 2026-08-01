@@ -14,7 +14,8 @@
 2. Generate a bcrypt password hash and set `ADMIN_PASSWORD_HASH`.
 3. Set a random `SESSION_SECRET` of at least 32 characters.
 4. Open `/admin` and verify login.
-5. Open `/admin/marketing` and verify the same login works.
+5. Open `/admin/crm` and verify the same login works.
+6. Open `/admin/marketing` and verify the same login works.
 
 Generate a password hash locally:
 
@@ -33,6 +34,33 @@ Set the three Cloudinary variables so Cory can upload images from the product ed
 3. Set `BUSINESS_POSTAL_ADDRESS` to the valid business street address, registered PO box, or qualifying commercial mailbox used in every marketing email.
 4. Confirm `SITE_URL` is the final HTTPS domain so unsubscribe links work.
 5. Confirm `/admin/marketing` shows email delivery as configured.
+
+## Retailer CRM test
+
+1. Open `/admin/crm`.
+2. Add one shop manually with a Washington cannabis retail license number.
+3. Add a primary buyer or general-manager contact.
+4. Log a call, email, visit, or meeting.
+5. Add a dated follow-up and confirm it appears on the Follow-ups screen when due.
+6. Move the account through UNCONTACTED, CONTACTED, FOLLOW_UP, SAMPLE_REQUESTED, NEGOTIATING, and CUSTOMER as appropriate.
+7. Confirm an existing wholesale order with the same license number appears in the account's Orders tab.
+8. Export the CRM CSV and confirm the shop, stage, source, and next action are present.
+9. Test a small CSV import using a source that is documented as lawful for commercial outreach.
+10. Confirm the import records the source name, URL, source date, usage basis, inserted rows, updated rows, and rejected rows.
+11. Confirm `Active` and `Pending (Issued)` records are treated as active license statuses.
+12. Confirm license refreshes do not overwrite Cory's sales stage, notes, contacts, activity, or tasks.
+13. Do not automatically add CRM accounts to bulk campaigns. Add a contact to campaigns only after explicit, documented marketing consent.
+
+## CRM source controls
+
+The LCB license list can be used to verify whether an individual business appears licensed and whether its privilege status is active. The LCB public-records page warns that records received through the Public Records Act may not be used for commercial purposes and currently warns of possible list errors. Before importing any statewide list for outreach:
+
+- document the source and source date;
+- document why the source may lawfully be used for commercial outreach;
+- retain the source URL and import batch;
+- verify important license records individually before relying on them;
+- keep license verification separate from bulk-email consent;
+- preserve do-not-contact and unsubscribe records.
 
 ## Product and order test
 
@@ -90,5 +118,6 @@ The system is configured for licensed Washington business-to-business orders. It
 - Confirm cannabis warnings in the age gate and footer.
 - Confirm privacy and terms content.
 - Test desktop and mobile ordering.
+- Test CRM account import, outreach history, tasks, orders, and source controls.
 - Test campaign creation, delivery, and unsubscribe behavior.
 - Set `ENABLE_INDEXING=true` only after final approval.
