@@ -28,6 +28,7 @@ jobs:
           node --check commerce-api.js
           node --check marketing-api.js
           node --check crm-api.js
+          node --check crm-order-sync.js
           node --check auth.js
           node --check db.js
 
