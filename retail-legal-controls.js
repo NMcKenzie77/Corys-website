@@ -62,16 +62,6 @@ async function ensureRetailLegalSchema() {
         unsubscribed_at=COALESCE(unsubscribed_at,NOW()),
         updated_at=NOW()
     WHERE marketing_opt_in=TRUE AND marketing_state<>'WA';
-
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname='retail_customers_marketing_wa_check'
-      ) THEN
-        ALTER TABLE retail_customers ADD CONSTRAINT retail_customers_marketing_wa_check
-          CHECK (marketing_opt_in=FALSE OR marketing_state='WA');
-      END IF;
-    END $$;
   `);
 }
 
@@ -136,35 +126,6 @@ async function persistProductCompliance(body) {
   }
 }
 
-async function augmentAdminProducts(payload) {
-  if (!payload || !Array.isArray(payload.products) || !payload.products.length) return;
-  const compliance = await pool.query(`
-    SELECT p.id product_id,p.advertising_reviewed,v.id variant_id,v.sku,
-      v.acquisition_cost_cents,v.limit_category,v.limit_amount
-    FROM products p
-    LEFT JOIN product_variants v ON v.product_id=p.id
-  `);
-  const productMap = new Map();
-  const variantMap = new Map();
-  for (const row of compliance.rows) {
-    productMap.set(Number(row.product_id), Boolean(row.advertising_reviewed));
-    if (row.variant_id) variantMap.set(Number(row.variant_id), row);
-  }
-  payload.products = payload.products.map((product) => ({
-    ...product,
-    advertisingReviewed: productMap.get(Number(product.id)) || false,
-    variants: (product.variants || []).map((variant) => {
-      const row = variantMap.get(Number(variant.id)) || {};
-      return {
-        ...variant,
-        acquisitionCostCents: Number(row.acquisition_cost_cents || 0),
-        limitCategory: row.limit_category || '',
-        limitAmount: Number(row.limit_amount || 0)
-      };
-    })
-  }));
-}
-
 async function validatePurchaseLimits(items) {
   const normalized = Array.isArray(items) ? items : [];
   if (!normalized.length) return;
@@ -204,19 +165,23 @@ function rejectShippingAndOnlinePayment(body) {
 function wrapSuccessfulJson(res, callback) {
   const original = res.json.bind(res);
   res.json = function wrapped(payload) {
-    if (res.statusCode >= 200 && res.statusCode < 300 && payload && payload.ok) {
-      Promise.resolve(callback(payload)).catch((error) => console.error('Retail compliance persistence failed:', error.message));
+    if (!(res.statusCode >= 200 && res.statusCode < 300 && payload && payload.ok)) {
+      return original(payload);
     }
-    return original(payload);
+    Promise.resolve(callback(payload))
+      .then(() => original(payload))
+      .catch((error) => {
+        console.error('Retail compliance persistence failed:', error.message);
+        if (!res.headersSent) {
+          res.status(500);
+          original({ ok: false, error: 'The operation could not be finalized because its compliance record failed.' });
+        }
+      });
+    return res;
   };
 }
 
 function registerRetailLegalControls(app) {
-  app.get('/api/admin/retail/products', (req, res, next) => {
-    wrapSuccessfulJson(res, (payload) => augmentAdminProducts(payload));
-    next();
-  });
-
   app.use(['/api/admin/retail/products', '/api/admin/retail/products/:id'], async (req, res, next) => {
     try {
       if (!['POST', 'PUT'].includes(req.method)) return next();
