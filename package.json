@@ -1,15 +1,21 @@
 {
-  "name": "wholesale-cannabis-site",
-  "version": "1.0.0",
+  "name": "cory-wholesale-commerce",
+  "version": "2.0.0",
   "private": true,
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check db.js && node --check auth.js && node --check public/js/commerce.js && node --check public/js/admin.js"
   },
   "dependencies": {
-    "express": "4.22.2"
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.1"
   }
 }
