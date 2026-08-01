@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 const { initDatabase, pool } = require('./db');
 const { registerCommerce } = require('./commerce-api');
 const { ensureMarketingSchema, registerMarketing, startMarketingWorker } = require('./marketing-api');
+const { ensureCrmSchema, registerCrm } = require('./crm-api');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,8 +21,8 @@ const ENABLE_INDEXING = process.env.ENABLE_INDEXING === 'true';
 const OG_IMAGE = process.env.OG_IMAGE || '';
 
 app.set('trust proxy', true);
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.json({ limit: '8mb' }));
+app.use(express.urlencoded({ extended: true, limit: '8mb' }));
 app.use(cookieParser());
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -80,6 +81,7 @@ function render(slug, req, status = 200) {
 
 registerCommerce(app, { salesEmail: process.env.SALES_EMAIL || process.env.ADMIN_EMAIL || '' });
 registerMarketing(app);
+registerCrm(app);
 
 app.get('/healthz', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ ok: true, database: true }); }
@@ -92,18 +94,19 @@ app.get('/sitemap.xml', (req, res) => {
 });
 app.get('/admin', (_req, res) => res.type('html').send(replace(fs.readFileSync(path.join(VIEWS, 'admin.html'), 'utf8'), { siteName: esc(SITE_NAME) })));
 app.get('/admin/marketing', (_req, res) => res.type('html').send(replace(fs.readFileSync(path.join(VIEWS, 'marketing.html'), 'utf8'), { siteName: esc(SITE_NAME) })));
+app.get('/admin/crm', (_req, res) => res.type('html').send(replace(fs.readFileSync(path.join(VIEWS, 'crm.html'), 'utf8'), { siteName: esc(SITE_NAME) })));
 app.get('/', (req, res) => res.type('html').send(render('index', req)));
 app.get('/:page', (req, res, next) => { const html = render(req.params.page, req); if (!html) return next(); res.type('html').send(html); });
 app.use((error, _req, res, _next) => {
   console.error(error);
   const status = Number(error.status) || (error.code === '23505' ? 409 : 500);
-  let message = error.code === '23505' ? 'That slug, SKU, or email is already in use.' : (error.message || 'Something went wrong.');
+  let message = error.code === '23505' ? 'That slug, SKU, license number, or email is already in use.' : (error.message || 'Something went wrong.');
   if (status >= 500 && process.env.NODE_ENV === 'production') message = 'Something went wrong on our end.';
   res.status(status).json({ ok: false, error: message });
 });
 app.use((req, res) => res.status(404).type('html').send(render('404', req, 404) || '<h1>Page not found</h1>'));
 
-initDatabase().then(ensureMarketingSchema).then(() => {
+initDatabase().then(ensureMarketingSchema).then(ensureCrmSchema).then(() => {
   startMarketingWorker();
   app.listen(PORT, () => console.log(`${SITE_NAME} commerce running on ${PORT}`));
 }).catch((error) => { console.error('Startup failed:', error); process.exit(1); });
