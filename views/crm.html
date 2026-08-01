@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>{{siteName}} Retailer CRM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/crm.css" />
+</head>
+<body>
+  <div class="login-screen" data-login-view>
+    <form class="login-card" data-login-form>
+      <p class="eyebrow">{{siteName}}</p>
+      <h1>Washington retailer CRM</h1>
+      <p>Manage licensed shop accounts, buyer contacts, outreach, follow-ups, orders, and campaign readiness.</p>
+      <label>Email<input type="email" name="email" required autocomplete="username" /></label>
+      <label>Password<input type="password" name="password" required autocomplete="current-password" /></label>
+      <button type="submit">Sign in</button>
+      <p class="status" data-login-status></p>
+    </form>
+  </div>
+
+  <div class="crm-shell" data-crm-view hidden>
+    <aside class="sidebar">
+      <a class="brand" href="/">{{siteName}}</a>
+      <nav>
+        <button class="active" data-view-button="pipeline">Pipeline</button>
+        <button data-view-button="shops">All shops</button>
+        <button data-view-button="tasks">Follow-ups</button>
+        <button data-view-button="import">Import</button>
+        <a href="/admin">Products &amp; orders</a>
+        <a href="/admin/marketing">Campaigns</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="/api/admin/crm/export.csv">Export CRM</a>
+        <button data-logout>Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><p class="eyebrow">Statewide wholesale sales</p><h1 data-page-title>Pipeline</h1></div>
+        <div class="admin-email" data-admin-email></div>
+      </header>
+
+      <section data-view="pipeline">
+        <div class="metrics">
+          <article><span>Total shop records</span><strong data-summary="total_accounts">—</strong></article>
+          <article><span>Active licenses</span><strong data-summary="active_accounts">—</strong></article>
+          <article><span>Uncontacted</span><strong data-summary="uncontacted">—</strong></article>
+          <article><span>Follow-ups due</span><strong data-summary="followups_due">—</strong></article>
+          <article><span>Customers</span><strong data-summary="customers">—</strong></article>
+          <article><span>Missing email</span><strong data-summary="missing_email">—</strong></article>
+        </div>
+        <div class="pipeline-grid" data-stage-grid></div>
+      </section>
+
+      <section data-view="shops" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">Account coverage</p><h2>Licensed Washington shops</h2></div>
+          <button class="primary" type="button" data-new-account>Add shop</button>
+        </div>
+        <div class="filters">
+          <input type="search" placeholder="Search shop, license, city, county" data-search />
+          <select data-stage-filter><option value="">All stages</option><option>UNCONTACTED</option><option>RESEARCHING</option><option>CONTACTED</option><option>FOLLOW_UP</option><option>SAMPLE_REQUESTED</option><option>NEGOTIATING</option><option>CUSTOMER</option><option>NOT_A_FIT</option><option>DO_NOT_CONTACT</option></select>
+          <select data-status-filter><option value="">All license statuses</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select>
+          <select data-county-filter><option value="">All counties</option></select>
+          <label class="due-filter"><input type="checkbox" data-due-filter /> Follow-ups due</label>
+          <button class="secondary" type="button" data-clear-filters>Clear</button>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Shop</th><th>License</th><th>Location</th><th>License status</th><th>Sales stage</th><th>Buyer/contact</th><th>Next action</th><th>Orders</th></tr></thead><tbody data-account-table></tbody></table>
+        </div>
+      </section>
+
+      <section data-view="tasks" hidden>
+        <div class="section-heading"><div><p class="eyebrow">Daily worklist</p><h2>Follow-ups due</h2></div><button class="secondary" type="button" data-refresh-tasks>Refresh</button></div>
+        <div class="task-board" data-task-board></div>
+      </section>
+
+      <section data-view="import" hidden>
+        <div class="import-layout">
+          <form class="import-card" data-import-form>
+            <p class="eyebrow">Account import</p><h2>Load or refresh licensed shops</h2>
+            <p>Expected core fields include <code>licenseNumber</code>, <code>tradeName</code>, <code>privilegeStatus</code>, <code>address</code>, <code>city</code>, <code>state</code>, <code>zip</code>, and <code>county</code>. Common header variations are accepted.</p>
+            <label>Source name<input name="sourceName" required placeholder="Licensed business data provider or researched directory" /></label>
+            <label>Source URL<input name="sourceUrl" type="url" placeholder="https://..." /></label>
+            <label>Source as of<input name="sourceAsOf" type="date" /></label>
+            <label>Commercial-use basis<textarea name="usageBasis" rows="4" required placeholder="Explain why this source may lawfully be used for business outreach."></textarea></label>
+            <label>CSV file<input type="file" accept=".csv,text/csv" data-import-file required /></label>
+            <label class="ack"><input type="checkbox" name="commercialUseConfirmed" required /><span>I confirm that Cory has the right to use this source for commercial outreach and that the file does not violate source restrictions.</span></label>
+            <button class="primary" type="submit">Import or refresh shops</button>
+            <p class="status" data-import-status></p>
+          </form>
+          <aside class="source-warning">
+            <p class="eyebrow">Source control</p>
+            <h2>License verification is not the same as lead-list permission.</h2>
+            <p>Washington LCB identifies <strong>Active</strong> and <strong>Pending (Issued)</strong> as currently active statuses. The LCB public-records page also warns that records received through the Public Records Act may not be used for commercial purposes and notes possible list errors.</p>
+            <p>The CRM records the source, source date, usage basis, and import batch for every refresh. License status can be verified without automatically treating every public-record entry as a marketing subscriber.</p>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" data-account-modal hidden>
+    <div class="modal-card wide">
+      <button class="modal-close" type="button" data-close-account>×</button>
+      <div class="modal-heading"><p class="eyebrow">Retailer account</p><h2 data-account-title>Shop record</h2></div>
+      <div class="account-tabs">
+        <button class="active" data-account-tab="profile">Profile</button>
+        <button data-account-tab="contacts">Contacts</button>
+        <button data-account-tab="activity">Activity</button>
+        <button data-account-tab="tasks">Tasks</button>
+        <button data-account-tab="orders">Orders</button>
+      </div>
+
+      <section data-account-panel="profile">
+        <form data-account-form>
+          <input type="hidden" name="accountId" />
+          <div class="form-grid three">
+            <label>Shop / trade name<input name="tradeName" required /></label>
+            <label>Legal name<input name="legalName" /></label>
+            <label>License number<input name="licenseNumber" required /></label>
+            <label>Privilege status<input name="privilegeStatus" placeholder="Active or Pending (Issued)" /></label>
+            <label>License type<input name="licenseType" value="Cannabis Retailer" /></label>
+            <label class="checkbox"><input type="checkbox" name="licenseActive" /> Active license</label>
+            <label>Address<input name="address1" /></label><label>Suite/unit<input name="address2" /></label><label>City<input name="city" /></label>
+            <label>State<input name="state" value="WA" maxlength="2" /></label><label>ZIP<input name="postalCode" /></label><label>County<input name="county" /></label>
+            <label>Phone<input name="phone" /></label><label>General email<input name="generalEmail" type="email" /></label><label>Website<input name="website" type="url" /></label>
+            <label>Sales stage<select name="stage"><option>UNCONTACTED</option><option>RESEARCHING</option><option>CONTACTED</option><option>FOLLOW_UP</option><option>SAMPLE_REQUESTED</option><option>NEGOTIATING</option><option>CUSTOMER</option><option>NOT_A_FIT</option><option>DO_NOT_CONTACT</option></select></label>
+            <label>Priority<select name="priority"><option>LOW</option><option selected>NORMAL</option><option>HIGH</option><option>URGENT</option></select></label>
+            <label>Assigned to<input name="assignedTo" /></label>
+            <label>Next action<input name="nextAction" /></label><label>Next action date<input name="nextActionAt" type="date" /></label>
+            <label class="checkbox"><input type="checkbox" name="medicalEndorsed" /> Medical endorsement</label>
+            <label class="checkbox"><input type="checkbox" name="doNotContact" /> Do not contact</label>
+            <label class="span-three">Notes<textarea name="notes" rows="5"></textarea></label>
+            <label>Source name<input name="sourceName" /></label><label>Source URL<input name="sourceUrl" type="url" /></label><label>Source as of<input name="sourceAsOf" type="date" /></label>
+            <label class="span-three">Source usage basis<textarea name="sourceUsageBasis" rows="2"></textarea></label>
+          </div>
+          <div class="modal-actions"><button class="secondary" type="button" data-close-account>Close</button><button class="primary" type="submit">Save shop</button></div>
+          <p class="status" data-account-status></p>
+        </form>
+      </section>
+
+      <section data-account-panel="contacts" hidden>
+        <div class="split-panel"><div><h3>Buyer and store contacts</h3><div data-contact-list></div></div>
+          <form class="side-form" data-contact-form><h3>Add or update contact</h3>
+            <label>Name<input name="name" /></label><label>Title<input name="title" placeholder="Buyer, GM, owner..." /></label><label>Email<input name="email" type="email" /></label><label>Phone<input name="phone" /></label>
+            <label class="checkbox"><input type="checkbox" name="isPrimary" /> Primary contact</label><label class="checkbox"><input type="checkbox" name="doNotContact" /> Do not contact</label>
+            <label class="checkbox"><input type="checkbox" name="marketingOptIn" data-marketing-optin /> Explicit marketing consent</label>
+            <div data-consent-fields hidden><label>Consent source<input name="consentSource" placeholder="Written consent, checkout opt-in..." /></label><label class="checkbox"><input type="checkbox" name="consentConfirmed" /> Consent documented</label></div>
+            <button class="primary" type="submit">Save contact</button><p class="status" data-contact-status></p>
+          </form></div>
+      </section>
+
+      <section data-account-panel="activity" hidden>
+        <div class="split-panel"><div><h3>Outreach history</h3><div class="timeline" data-activity-list></div></div>
+          <form class="side-form" data-activity-form><h3>Log interaction</h3>
+            <label>Type<select name="activityType"><option>CALL</option><option>EMAIL</option><option>VISIT</option><option>MEETING</option><option>SAMPLE</option><option>NOTE</option><option>ORDER</option><option>OTHER</option></select></label>
+            <label>Contact<select name="contactId" data-activity-contact><option value="">General account</option></select></label>
+            <label>Subject<input name="subject" /></label><label>Details<textarea name="details" rows="4"></textarea></label><label>Outcome<input name="outcome" /></label>
+            <label>Move stage to<select name="stage"><option value="">Keep current stage</option><option>CONTACTED</option><option>FOLLOW_UP</option><option>SAMPLE_REQUESTED</option><option>NEGOTIATING</option><option>CUSTOMER</option><option>NOT_A_FIT</option></select></label>
+            <label>Next action<input name="nextAction" /></label><label>Due date<input name="nextActionAt" type="date" /></label>
+            <button class="primary" type="submit">Log activity</button><p class="status" data-activity-status></p>
+          </form></div>
+      </section>
+
+      <section data-account-panel="tasks" hidden><div class="split-panel"><div><h3>Open and completed tasks</h3><div data-account-task-list></div></div>
+        <form class="side-form" data-task-form><h3>Add follow-up</h3><label>Task<input name="title" required /></label><label>Details<textarea name="details" rows="3"></textarea></label><label>Due date<input name="dueAt" type="date" /></label><label>Priority<select name="priority"><option>LOW</option><option selected>NORMAL</option><option>HIGH</option><option>URGENT</option></select></label><button class="primary" type="submit">Add task</button><p class="status" data-task-status></p></form></div></section>
+      <section data-account-panel="orders" hidden><h3>Wholesale order history</h3><div data-order-list></div></section>
+    </div>
+  </div>
+
+  <script src="/js/crm.js"></script>
+</body>
+</html>
