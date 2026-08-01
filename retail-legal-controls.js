@@ -56,6 +56,22 @@ async function ensureRetailLegalSchema() {
     ALTER TABLE retail_customers ADD COLUMN IF NOT EXISTS marketing_state CHAR(2) NOT NULL DEFAULT '';
     ALTER TABLE retail_orders ADD COLUMN IF NOT EXISTS payment_provider TEXT NOT NULL DEFAULT '';
     ALTER TABLE retail_orders ADD COLUMN IF NOT EXISTS completed_in_store BOOLEAN NOT NULL DEFAULT FALSE;
+
+    UPDATE retail_customers
+    SET marketing_opt_in=FALSE,
+        unsubscribed_at=COALESCE(unsubscribed_at,NOW()),
+        updated_at=NOW()
+    WHERE marketing_opt_in=TRUE AND marketing_state<>'WA';
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname='retail_customers_marketing_wa_check'
+      ) THEN
+        ALTER TABLE retail_customers ADD CONSTRAINT retail_customers_marketing_wa_check
+          CHECK (marketing_opt_in=FALSE OR marketing_state='WA');
+      END IF;
+    END $$;
   `);
 }
 
@@ -120,6 +136,35 @@ async function persistProductCompliance(body) {
   }
 }
 
+async function augmentAdminProducts(payload) {
+  if (!payload || !Array.isArray(payload.products) || !payload.products.length) return;
+  const compliance = await pool.query(`
+    SELECT p.id product_id,p.advertising_reviewed,v.id variant_id,v.sku,
+      v.acquisition_cost_cents,v.limit_category,v.limit_amount
+    FROM products p
+    LEFT JOIN product_variants v ON v.product_id=p.id
+  `);
+  const productMap = new Map();
+  const variantMap = new Map();
+  for (const row of compliance.rows) {
+    productMap.set(Number(row.product_id), Boolean(row.advertising_reviewed));
+    if (row.variant_id) variantMap.set(Number(row.variant_id), row);
+  }
+  payload.products = payload.products.map((product) => ({
+    ...product,
+    advertisingReviewed: productMap.get(Number(product.id)) || false,
+    variants: (product.variants || []).map((variant) => {
+      const row = variantMap.get(Number(variant.id)) || {};
+      return {
+        ...variant,
+        acquisitionCostCents: Number(row.acquisition_cost_cents || 0),
+        limitCategory: row.limit_category || '',
+        limitAmount: Number(row.limit_amount || 0)
+      };
+    })
+  }));
+}
+
 async function validatePurchaseLimits(items) {
   const normalized = Array.isArray(items) ? items : [];
   if (!normalized.length) return;
@@ -167,6 +212,11 @@ function wrapSuccessfulJson(res, callback) {
 }
 
 function registerRetailLegalControls(app) {
+  app.get('/api/admin/retail/products', (req, res, next) => {
+    wrapSuccessfulJson(res, (payload) => augmentAdminProducts(payload));
+    next();
+  });
+
   app.use(['/api/admin/retail/products', '/api/admin/retail/products/:id'], async (req, res, next) => {
     try {
       if (!['POST', 'PUT'].includes(req.method)) return next();
@@ -207,7 +257,7 @@ function registerRetailLegalControls(app) {
     next();
   });
 
-  app.patch('/api/admin/retail/orders/:id', async (req, _res, next) => {
+  app.patch('/api/admin/retail/orders/:id', async (req, res, next) => {
     try {
       const target = text(req.body && req.body.status, 30).toUpperCase();
       if (target === 'COMPLETED') {
@@ -215,7 +265,7 @@ function registerRetailLegalControls(app) {
         if (!text(req.body.posReceiptNumber, 120)) throw httpError('Record the in-store POS receipt number before completing the sale.');
         if (currentWashingtonHour() < 8) throw httpError('Washington cannabis retail sales may not be completed before 8:00 a.m.');
         const provider = text(req.body.paymentProvider || 'IN_STORE', 120);
-        wrapSuccessfulJson(_res, async () => {
+        wrapSuccessfulJson(res, async () => {
           await pool.query(`
             UPDATE retail_orders SET payment_provider=$1, completed_in_store=TRUE
             WHERE id=$2
@@ -228,12 +278,12 @@ function registerRetailLegalControls(app) {
     }
   });
 
-  app.patch('/api/admin/retail/customers/:id', async (req, _res, next) => {
+  app.patch('/api/admin/retail/customers/:id', async (req, res, next) => {
     try {
       if (bool(req.body && req.body.marketingOptIn)) {
         const state = text(req.body.marketingState, 2).toUpperCase();
         if (state !== 'WA') throw httpError('Marketing consent may only be enabled for a documented Washington resident.');
-        wrapSuccessfulJson(_res, async () => {
+        wrapSuccessfulJson(res, async () => {
           await pool.query('UPDATE retail_customers SET marketing_state=$1 WHERE id=$2', ['WA', Number(req.params.id)]);
         });
       }
@@ -249,6 +299,21 @@ function registerRetailLegalControls(app) {
         .map((value) => text(value, 10000)).join(' ');
       if (CLAIM_PATTERN.test(copy)) throw httpError('Campaign copy may not claim curative or therapeutic effects.');
       if (CHILD_APPEAL_PATTERN.test(copy)) throw httpError('Campaign copy may not target or appeal to people under 21.');
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/admin/retail/campaigns/:id/send', async (_req, _res, next) => {
+    try {
+      const invalid = await pool.query(`
+        SELECT COUNT(*)::int count FROM retail_customers
+        WHERE marketing_opt_in=TRUE AND unsubscribed_at IS NULL AND marketing_state<>'WA'
+      `);
+      if (invalid.rows[0].count > 0) {
+        throw httpError('Campaign blocked because one or more opted-in contacts lack documented Washington residency.', 409);
+      }
       next();
     } catch (error) {
       next(error);
