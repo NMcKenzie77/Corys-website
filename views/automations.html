@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>{{siteName}} Automations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/automations.css" />
+</head>
+<body>
+  <div class="automation-login" data-login-view>
+    <form class="login-card" data-login-form>
+      <p class="eyebrow">{{siteName}}</p>
+      <h1>Automation center</h1>
+      <p>Sign in with the same administrator account used for products, CRM, and campaigns.</p>
+      <label>Email<input type="email" name="email" required autocomplete="username" /></label>
+      <label>Password<input type="password" name="password" required autocomplete="current-password" /></label>
+      <button type="submit">Sign in</button>
+      <p class="form-status" data-login-status></p>
+    </form>
+  </div>
+
+  <div class="automation-shell" data-automation-view hidden>
+    <aside class="sidebar">
+      <a class="brand" href="/">{{siteName}}</a>
+      <nav>
+        <a href="/admin">Products &amp; orders</a>
+        <a href="/admin/crm">Retailer CRM</a>
+        <a href="/admin/marketing">Marketing campaigns</a>
+        <a class="active" href="/admin/automations">Automations</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="/shop" target="_blank" rel="noopener">View wholesale shop</a>
+        <button data-logout>Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><p class="eyebrow">Operating system</p><h1>Automations</h1></div>
+        <div class="topbar-actions"><span data-admin-email></span><button class="secondary" data-run-all>Run all now</button></div>
+      </header>
+
+      <section class="metrics">
+        <article><span>Enabled rules</span><strong data-metric="enabled_rules">—</strong></article>
+        <article><span>Open alerts</span><strong data-metric="open_alerts">—</strong></article>
+        <article><span>Actions in 7 days</span><strong data-metric="actions_7d">—</strong></article>
+        <article><span>Last worker run</span><strong class="small" data-metric="last_run_at">—</strong></article>
+      </section>
+
+      <div class="readiness-alert" data-readiness-alert hidden></div>
+      <p class="page-status" data-page-status></p>
+
+      <section class="section-block">
+        <div class="section-heading">
+          <div><p class="eyebrow">Rules</p><h2>What the system handles</h2><p>Operational alerts run automatically. Marketing rules create drafts only; Cory approves every bulk send.</p></div>
+          <button class="secondary" data-refresh>Refresh</button>
+        </div>
+        <div class="rule-grid" data-rule-grid></div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading"><div><p class="eyebrow">Attention required</p><h2>Open alerts</h2></div></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Severity</th><th>Alert</th><th>Details</th><th>Created</th><th></th></tr></thead><tbody data-alert-table></tbody></table>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading"><div><p class="eyebrow">Audit trail</p><h2>Recent automation runs</h2></div></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Rule</th><th>Status</th><th>Matched</th><th>Actions</th><th>Started</th><th>Error</th></tr></thead><tbody data-run-table></tbody></table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/js/automations.js"></script>
+</body>
+</html>
