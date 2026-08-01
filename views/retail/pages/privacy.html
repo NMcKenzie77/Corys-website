@@ -1,0 +1,49 @@
+<section class="legal-page">
+  <div class="wrap">
+    <article>
+      <p class="eyebrow">Privacy notice</p>
+      <h1>How customer information is handled.</h1>
+      <p>Effective August 1, 2026. This notice describes how {{siteName}} handles information submitted through the website, pickup reservation system, customer communications, marketing signup, and privacy-request process.</p>
+
+      <h2>Information collected</h2>
+      <p>The website may collect your name, email address, telephone number, pickup selections, pickup window, reservation notes, marketing preference, consent records, order history, and communications with the store. Staff may record that an acceptable ID was verified and may record an in-store POS receipt number.</p>
+      <p>The website does not request or store payment-card numbers, online cannabis payment credentials, copies of government identification, Social Security numbers, passwords, or sensitive health information.</p>
+
+      <h2>How information is used</h2>
+      <ul>
+        <li>Prepare, confirm, update, cancel, or complete pickup reservations.</li>
+        <li>Maintain accurate inventory and customer-service records.</li>
+        <li>Send transaction messages about a reservation.</li>
+        <li>Send optional marketing only when documented consent exists.</li>
+        <li>Protect the website, prevent abuse, and satisfy legal or regulatory obligations.</li>
+      </ul>
+
+      <h2>Marketing choices</h2>
+      <p>Marketing signup is optional and separate from a pickup reservation. Marketing is intended for documented Washington adults. Every marketing email includes an unsubscribe method. Transactional reservation messages may still be sent after a marketing opt-out.</p>
+
+      <h2>Sharing and service providers</h2>
+      <p>Information may be handled by service providers supporting hosting, databases, product images, email delivery, security, and store operations. Information may also be disclosed when required by law, licensing authorities, court order, fraud prevention, or protection of the store and its customers. Customer information is not sold as a marketing list.</p>
+
+      <h2>Retention and security</h2>
+      <p>Records are retained only as reasonably necessary for pickup operations, customer service, consent and opt-out proof, accounting, security, tax, licensing, and legal obligations. Administrative systems are access-controlled. Internet transmission and storage cannot be guaranteed completely secure.</p>
+
+      <h2>Access, correction, deletion, or opt-out requests</h2>
+      <p>Requests are verified before records are disclosed, corrected, or deleted. Some records may be retained when required for licensing, tax, transaction, audit, security, fraud-prevention, or legal purposes.</p>
+
+      <form class="panel" data-privacy-form novalidate>
+        <div class="form-grid">
+          <label class="field"><span>Request type</span><select name="requestType" required><option value="">Choose one</option><option value="ACCESS">Access my information</option><option value="CORRECTION">Correct my information</option><option value="DELETION">Delete eligible information</option><option value="MARKETING_OPT_OUT">Marketing opt-out</option><option value="OTHER">Other privacy request</option></select></label>
+          <label class="field"><span>Name</span><input name="name" required maxlength="200"></label>
+          <label class="field span-two"><span>Email used with the store</span><input name="email" type="email" required maxlength="200"></label>
+          <label class="field span-two"><span>Details</span><textarea name="details" rows="4" maxlength="5000"></textarea></label>
+        </div>
+        <label class="check"><input type="checkbox" name="confirmed" value="true" required><span>I confirm that the information is accurate and that I am authorized to make this request.</span></label>
+        <button class="button dark" type="submit">Submit privacy request</button>
+        <p class="status" data-privacy-status role="status"></p>
+      </form>
+
+      <h2>Contact</h2>
+      <p>Privacy questions may be sent to {{privacyEmail}}.</p>
+    </article>
+  </div>
+</section>
