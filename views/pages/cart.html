@@ -1,0 +1,52 @@
+<!--
+title: Wholesale Cart | {{siteName}}
+description: Review wholesale cannabis products and submit a licensed Washington retailer order request.
+robots: noindex, nofollow
+ogTitle: Wholesale Cart
+ogDescription: Review and submit a licensed retailer order request.
+schemaType: WebPage
+changefreq: weekly
+priority: 0.2
+-->
+<section class="commerce-hero compact">
+  <div class="wrap">
+    <p class="eyebrow">Wholesale order</p>
+    <h1 class="commerce-title">Cart and delivery details.</h1>
+    <p class="commerce-lead">Confirm products, provide the licensed retailer destination, and submit the order for review.</p>
+  </div>
+</section>
+
+<section class="cart-section" data-cart-app>
+  <div class="wrap cart-layout">
+    <div class="cart-panel">
+      <div class="cart-panel-heading"><h2>Products</h2><a href="/shop">Continue shopping</a></div>
+      <div data-cart-items></div>
+      <div class="cart-total-row"><span>Estimated wholesale total</span><strong data-cart-total>$0.00</strong></div>
+      <p class="cart-fine-print">Final acceptance is subject to license verification, inventory confirmation, taxes, and any applicable delivery or carrier charges.</p>
+    </div>
+
+    <form class="checkout-form" data-checkout-form novalidate>
+      <div class="form-section-heading"><p class="eyebrow">Retailer information</p><h2>Who ordered and where it goes</h2></div>
+      <div class="form-grid two">
+        <label>Business name<input name="businessName" required /></label>
+        <label>Contact name<input name="contactName" required /></label>
+        <label>Email<input name="email" type="email" required /></label>
+        <label>Phone<input name="phone" type="tel" required /></label>
+        <label>WA cannabis license number<input name="licenseNumber" required /></label>
+        <label>UBI number<input name="ubiNumber" /></label>
+      </div>
+      <div class="form-section-heading secondary"><p class="eyebrow">Licensed delivery destination</p><h2>Ship-to business address</h2></div>
+      <div class="form-grid two">
+        <label class="span-two">Address<input name="address1" autocomplete="street-address" required /></label>
+        <label class="span-two">Suite / unit<input name="address2" /></label>
+        <label>City<input name="city" required /></label>
+        <label>State<input name="state" value="WA" maxlength="2" readonly required /></label>
+        <label>ZIP code<input name="postalCode" autocomplete="postal-code" required /></label>
+      </div>
+      <label>Delivery or order notes<textarea name="notes" rows="4" placeholder="Receiving hours, loading instructions, buyer notes, or other lawful fulfillment details"></textarea></label>
+      <label class="license-confirmation"><input type="checkbox" name="licenseConfirmed" value="true" required /><span>I confirm that the ordering business and delivery destination are authorized Washington cannabis licensees and that the information provided is accurate.</span></label>
+      <button class="btn btn-signal btn-full" type="submit" data-order-submit>Submit wholesale order</button>
+      <p class="checkout-status" data-checkout-status role="status"></p>
+    </form>
+  </div>
+</section>

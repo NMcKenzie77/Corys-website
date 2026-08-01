@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>{{siteName}} Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+  <div class="admin-login" data-login-view>
+    <form class="login-card" data-login-form>
+      <p class="admin-eyebrow">{{siteName}}</p>
+      <h1>Wholesale operations</h1>
+      <p>Manage products, pricing, inventory, orders, customers, and fulfillment.</p>
+      <label>Email<input type="email" name="email" required autocomplete="username" /></label>
+      <label>Password<input type="password" name="password" required autocomplete="current-password" /></label>
+      <button type="submit">Sign in</button>
+      <p class="form-status" data-login-status></p>
+    </form>
+  </div>
+
+  <div class="admin-shell" data-admin-view hidden>
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="/">{{siteName}}</a>
+      <nav>
+        <button class="is-active" data-tab-button="dashboard">Dashboard</button>
+        <button data-tab-button="products">Products</button>
+        <button data-tab-button="orders">Orders</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <a href="/shop" target="_blank" rel="noopener">View public shop</a>
+        <button data-logout>Sign out</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div><p class="admin-eyebrow">Operations dashboard</p><h1 data-page-title>Dashboard</h1></div>
+        <div class="admin-user" data-admin-email></div>
+      </header>
+
+      <section data-tab-panel="dashboard">
+        <div class="metric-grid" data-summary-grid>
+          <article><span>Active products</span><strong data-summary="active_products">—</strong></article>
+          <article><span>Units available</span><strong data-summary="units_available">—</strong></article>
+          <article><span>New orders</span><strong data-summary="new_orders">—</strong></article>
+          <article><span>30-day order value</span><strong data-summary="gross_30d">—</strong></article>
+        </div>
+        <div class="admin-callout"><h2>Launch control</h2><p>Add products and inventory, test one complete order, then record approval, packing, carrier, tracking, manifest, shipment, and delivery from the Orders screen.</p></div>
+      </section>
+
+      <section data-tab-panel="products" hidden>
+        <div class="section-actions"><div><h2>Products and pricing</h2><p>Create products, upload images, set package variants, adjust prices, run sale pricing, and control inventory.</p></div><button class="primary-button" data-new-product>New product</button></div>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Product</th><th>Category</th><th>Variants</th><th>Inventory</th><th>Status</th><th></th></tr></thead><tbody data-products-table></tbody></table></div>
+      </section>
+
+      <section data-tab-panel="orders" hidden>
+        <div class="section-actions"><div><h2>Orders and fulfillment</h2><p>See who ordered, exactly what they ordered, the delivery location, and every fulfillment identifier.</p></div><div class="inline-actions"><select data-order-filter><option value="">All statuses</option><option>NEW</option><option>APPROVED</option><option>PACKING</option><option>READY_FOR_CARRIER</option><option>SHIPPED</option><option>DELIVERED</option><option>CANCELLED</option></select><a class="secondary-button" href="/api/admin/orders-export.csv">Export CSV</a></div></div>
+        <div class="admin-table-wrap"><table class="admin-table orders-table"><thead><tr><th>Order</th><th>Retailer</th><th>Destination</th><th>Total</th><th>Status</th><th>Date</th></tr></thead><tbody data-orders-table></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" data-product-modal hidden>
+    <div class="modal-card large">
+      <button class="modal-close" data-close-product aria-label="Close">×</button>
+      <form data-product-form>
+        <input type="hidden" name="productId" />
+        <div class="modal-heading"><p class="admin-eyebrow">Catalog management</p><h2 data-product-modal-title>New product</h2></div>
+        <div class="form-grid two">
+          <label>Product name<input name="name" required /></label>
+          <label>Slug<input name="slug" placeholder="generated-from-name" /></label>
+          <label>Category<input name="category" required placeholder="Flower, Edibles, Vapes..." /></label>
+          <label>Image URL<input name="imageUrl" type="url" placeholder="https://..." /></label>
+          <label class="span-two">Description<textarea name="description" rows="4"></textarea></label>
+        </div>
+        <div class="upload-row"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-image-file /><button type="button" class="secondary-button" data-upload-image>Upload image</button><span data-upload-status></span></div>
+        <div class="check-row"><label><input type="checkbox" name="featured" /> Featured product</label><label><input type="checkbox" name="active" checked /> Publicly active</label></div>
+        <div class="variants-heading"><div><h3>Package variants</h3><p>Each package has its own SKU, regular price, optional sale price, and inventory.</p></div><button type="button" class="secondary-button" data-add-variant>Add variant</button></div>
+        <div data-variant-rows></div>
+        <div class="modal-actions"><button type="button" class="secondary-button" data-close-product>Cancel</button><button type="submit" class="primary-button">Save product</button></div>
+        <p class="form-status" data-product-status></p>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" data-order-modal hidden><div class="modal-card large"><button class="modal-close" data-close-order aria-label="Close">×</button><div data-order-detail></div></div></div>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

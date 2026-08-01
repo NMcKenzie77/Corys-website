@@ -1,0 +1,45 @@
+<!--
+title: Wholesale Shop | {{siteName}}
+description: Browse live wholesale cannabis products, package options, pricing, and inventory for licensed Washington retailers.
+robots: index, follow
+ogTitle: Wholesale Cannabis Shop
+ogDescription: Live wholesale products and order requests for licensed Washington retailers.
+schemaType: CollectionPage
+changefreq: daily
+priority: 0.9
+-->
+<section class="commerce-hero">
+  <div class="wrap commerce-hero-inner">
+    <div>
+      <p class="eyebrow">Licensed retailer ordering</p>
+      <h1 class="commerce-title">Current wholesale availability.</h1>
+      <p class="commerce-lead">Browse products, select package formats, review live availability, and submit an order for license verification and lawful Washington business delivery.</p>
+    </div>
+    <a href="/cart" class="commerce-cart-summary">Cart <strong data-cart-count>0</strong></a>
+  </div>
+</section>
+
+<section class="shop-section" data-shop-app>
+  <div class="wrap">
+    <div class="shop-toolbar">
+      <label class="shop-search">
+        <span>Search products</span>
+        <input type="search" data-product-search placeholder="Search by product, category, or description" />
+      </label>
+      <label>
+        <span>Category</span>
+        <select data-category-filter><option value="">All categories</option></select>
+      </label>
+      <button class="btn btn-outline btn-small" type="button" data-clear-filters>Clear</button>
+    </div>
+    <div class="shop-message" data-shop-message>Loading current products…</div>
+    <div class="product-grid" data-product-grid></div>
+  </div>
+</section>
+
+<section class="wholesale-notice">
+  <div class="wrap wholesale-notice-inner">
+    <strong>Licensed business orders only.</strong>
+    <p>Submitting an order does not complete a sale. Orders require license verification, inventory confirmation, and fulfillment through lawful Washington cannabis transportation channels. No online payment is accepted.</p>
+  </div>
+</section>
