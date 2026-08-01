@@ -1,0 +1,42 @@
+<section class="menu-hero">
+  <div class="wrap">
+    <p class="eyebrow">Pickup reservation</p>
+    <h1>Reserve now. Pay in store.</h1>
+    <p>No cannabis sale is completed on this website. Staff will confirm the reservation, verify your ID at pickup, and complete payment and product transfer inside the licensed store.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap pickup-layout" data-pickup-app>
+    <div class="panel">
+      <div class="section-heading"><div><p class="eyebrow">Your reservation</p><h2>Selected products</h2></div><a href="/menu">Continue browsing</a></div>
+      <div data-pickup-items></div>
+      <div class="cart-total"><span>Estimated in-store total</span><strong data-pickup-total>$0.00</strong></div>
+      <p class="small">Final availability and price are confirmed by the store. Taxes and other lawful in-store charges may apply. No charge is made online.</p>
+    </div>
+
+    <form class="panel" data-pickup-form novalidate>
+      <p class="eyebrow">Customer information</p>
+      <h2>Who will pick it up?</h2>
+      <div class="form-grid">
+        <label class="field"><span>First name</span><input name="firstName" autocomplete="given-name" required maxlength="100"></label>
+        <label class="field"><span>Last name</span><input name="lastName" autocomplete="family-name" required maxlength="100"></label>
+        <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required maxlength="200"></label>
+        <label class="field"><span>Phone</span><input name="phone" type="tel" autocomplete="tel" required maxlength="50"></label>
+        <label class="field span-two"><span>Pickup window</span><select name="pickupWindow" data-pickup-window required><option value="">Loading pickup options…</option></select></label>
+        <label class="field span-two"><span>Notes for store staff</span><textarea name="notes" rows="3" maxlength="2000" placeholder="Optional pickup note. Do not include payment-card, password, health, or government-ID information."></textarea></label>
+      </div>
+
+      <div class="notice">
+        Bring an acceptable, unexpired government-issued ID. The name on the reservation should match the person arriving for pickup. Payment and final sale occur inside {{siteName}}.
+      </div>
+
+      <label class="check"><input type="checkbox" name="ageConfirmed" value="true" required><span>I confirm that I am at least 21 years old. I understand that age and identity will be verified again at the store.</span></label>
+      <label class="check"><input type="checkbox" name="privacyAccepted" value="true" required><span>I have reviewed and accept the <a href="/privacy" target="_blank" rel="noopener">Privacy Notice</a> and <a href="/terms" target="_blank" rel="noopener">Pickup Terms</a>.</span></label>
+      <label class="check"><input type="checkbox" name="marketingConsent" value="true"><span>I am a Washington resident and agree to receive optional 21+ menu and store marketing emails. This is not required to reserve products, and I can unsubscribe at any time.</span></label>
+
+      <button class="button primary" type="submit" data-pickup-submit>Submit pickup reservation</button>
+      <p class="status" data-pickup-status role="status"></p>
+    </form>
+  </div>
+</section>
