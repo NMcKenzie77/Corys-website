@@ -29,6 +29,7 @@ jobs:
           node --check marketing-api.js
           node --check crm-api.js
           node --check crm-order-sync.js
+          node --check automation-api.js
           node --check auth.js
           node --check db.js
 
@@ -39,3 +40,4 @@ jobs:
           node --check public/js/admin.js
           node --check public/js/marketing.js
           node --check public/js/crm.js
+          node --check public/js/automations.js
