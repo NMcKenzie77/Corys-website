@@ -1,15 +1,22 @@
 {
-  "name": "wholesale-cannabis-site",
-  "version": "1.0.0",
+  "name": "washington-dispensary-retail-platform",
+  "version": "3.0.0",
   "private": true,
+  "description": "Washington cannabis dispensary menu, pickup reservation, customer CRM, marketing, automation, and compliance platform.",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node retail-server.js",
+    "dev": "node retail-server.js",
+    "check": "node --check retail-server.js && node --check retail-api.js && node --check retail-legal-controls.js && node --check retail-compliance-api.js && node --check compliance-api.js && node --check db.js && node --check auth.js && node --check public/js/retail-site.js && node --check public/js/retail-menu.js && node --check public/js/retail-pickup.js && node --check public/js/retail-privacy.js && node --check public/js/retail-admin.js"
   },
   "dependencies": {
-    "express": "4.22.2"
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.22.1",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.1"
   }
 }

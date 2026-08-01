@@ -1,0 +1,48 @@
+name: Validate dispensary retail platform
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - agent/dispensary-retail-pivot
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Validate server JavaScript
+        run: |
+          node --check retail-server.js
+          node --check retail-api.js
+          node --check retail-legal-controls.js
+          node --check retail-compliance-api.js
+          node --check compliance-api.js
+          node --check auth.js
+          node --check db.js
+          node --check scripts/validate-retail.js
+
+      - name: Validate browser JavaScript
+        run: |
+          node --check public/js/retail-site.js
+          node --check public/js/retail-menu.js
+          node --check public/js/retail-pickup.js
+          node --check public/js/retail-privacy.js
+          node --check public/js/retail-admin.js
+
+      - name: Validate retail legal structure
+        run: node scripts/validate-retail.js
+
+      - name: Confirm production entry point
+        run: node -e "const p=require('./package.json');if(p.scripts.start!=='node retail-server.js')process.exit(1)"
