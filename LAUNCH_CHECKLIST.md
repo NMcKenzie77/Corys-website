@@ -1,123 +1,155 @@
-# Wholesale Commerce Launch Checklist
+# Washington Dispensary Launch Checklist
 
-## Railway
+This application supports an online menu and pickup reservations. It does not complete cannabis sales online, accept cannabis payment online, ship cannabis, or deliver cannabis to customers.
 
-1. Add a PostgreSQL service and expose `DATABASE_URL` to the web service.
-2. Set the service start command to `npm start`.
-3. Add every required variable from `.env.example`.
-4. Keep `ENABLE_INDEXING=false` until the live domain, products, license information, contact information, and marketing footer have been verified.
-5. Confirm `/healthz` returns `{ "ok": true, "database": true }`.
+## 1. Production configuration
 
-## Admin access
+1. Add Railway PostgreSQL and expose `DATABASE_URL` to the web service.
+2. Confirm the start command is `npm start` and `package.json` starts `retail-server.js`.
+3. Add every production value from `.env.example`.
+4. Use the verified dispensary trade name, physical licensed address, telephone, email, store hours, and Washington retail license number.
+5. Set a final HTTPS `SITE_URL`.
+6. Keep `ENABLE_INDEXING=false` through production testing.
+7. Confirm `/healthz` reports:
+   - `mode: WASHINGTON_RETAIL_PICKUP_ONLY`;
+   - `database: true`;
+   - `publicReady: true` before indexing.
+
+## 2. Administrator security
 
 1. Set `ADMIN_EMAIL`.
 2. Generate a bcrypt password hash and set `ADMIN_PASSWORD_HASH`.
-3. Set a random `SESSION_SECRET` of at least 32 characters.
-4. Open `/admin` and verify login.
-5. Open `/admin/crm` and verify the same login works.
-6. Open `/admin/marketing` and verify the same login works.
+3. Set a random `SESSION_SECRET` containing at least 32 characters.
+4. Do not use `ADMIN_PASSWORD` after launch.
+5. Confirm `/admin` requires authentication.
+6. Confirm admin and API responses include `X-Robots-Tag: noindex, nofollow, noarchive` and `Cache-Control: no-store`.
 
-Generate a password hash locally:
+Generate a password hash:
 
 ```bash
 node -e "console.log(require('bcryptjs').hashSync('REPLACE_WITH_PASSWORD', 12))"
 ```
 
-## Product images
+## 3. Menu product setup
 
-Set the three Cloudinary variables so Cory can upload images from the product editor. Without Cloudinary, the admin can still paste a hosted image URL.
+For every active product:
 
-## Transactional and marketing email
+1. Enter the exact product and brand name.
+2. Select the correct category and package format.
+3. Copy cannabinoid information from the compliant package or approved source without adding health claims.
+4. Upload accurate adult-oriented product imagery.
+5. Confirm the image and copy do not use children, toys, cartoons, mascots, youth themes, or curative and therapeutic claims.
+6. Check the advertising-review acknowledgment before making the product active.
+7. Add each package SKU and barcode.
+8. Record current acquisition cost.
+9. Set regular and optional sale price at or above acquisition cost.
+10. Record current inventory.
+11. Assign the correct purchase-limit category and amount per package:
+    - usable cannabis grams;
+    - concentrate grams;
+    - infused solid ounces;
+    - infused liquid ounces; or
+    - qualifying low-dose liquid THC milligrams.
+12. Confirm the public menu displays only intended products and packages.
 
-1. Set `RESEND_API_KEY`, `EMAIL_FROM`, and `SALES_EMAIL`.
-2. Verify the sending domain in Resend.
-3. Set `BUSINESS_POSTAL_ADDRESS` to the valid business street address, registered PO box, or qualifying commercial mailbox used in every marketing email.
-4. Confirm `SITE_URL` is the final HTTPS domain so unsubscribe links work.
-5. Confirm `/admin/marketing` shows email delivery as configured.
+## 4. Pickup reservation test
 
-## Retailer CRM test
+1. Open `/menu` as a customer.
+2. Confirm the 21+ gate appears in a fresh browser session.
+3. Add products to the reservation.
+4. Confirm no shipping address, delivery method, payment card, payment token, or online checkout field exists.
+5. Attempt a quantity above a configured Washington purchase limit and confirm the reservation is rejected.
+6. Submit a lawful test reservation.
+7. Confirm inventory is reserved immediately.
+8. Confirm the customer receives a reservation notice when Resend is configured.
+9. Confirm staff sees the reservation in `/admin`.
+10. Move the reservation through `NEW`, `CONFIRMED`, `PICKING`, and `READY`.
+11. Confirm the ready notice instructs the customer to bring ID and pay in store.
+12. Cancel a second test reservation and confirm inventory is restored.
+13. Expire an unclaimed test reservation and confirm inventory is restored.
 
-1. Open `/admin/crm`.
-2. Add one shop manually with a Washington cannabis retail license number.
-3. Add a primary buyer or general-manager contact.
-4. Log a call, email, visit, or meeting.
-5. Add a dated follow-up and confirm it appears on the Follow-ups screen when due.
-6. Move the account through UNCONTACTED, CONTACTED, FOLLOW_UP, SAMPLE_REQUESTED, NEGOTIATING, and CUSTOMER as appropriate.
-7. Confirm an existing wholesale order with the same license number appears in the account's Orders tab.
-8. Export the CRM CSV and confirm the shop, stage, source, and next action are present.
-9. Test a small CSV import using a source that is documented as lawful for commercial outreach.
-10. Confirm the import records the source name, URL, source date, usage basis, inserted rows, updated rows, and rejected rows.
-11. Confirm `Active` and `Pending (Issued)` records are treated as active license statuses.
-12. Confirm license refreshes do not overwrite Cory's sales stage, notes, contacts, activity, or tasks.
-13. Do not automatically add CRM accounts to bulk campaigns. Add a contact to campaigns only after explicit, documented marketing consent.
+## 5. In-store completion procedure
 
-## CRM source controls
+A reservation must not be marked `COMPLETED` until staff has:
 
-The LCB license list can be used to verify whether an individual business appears licensed and whether its privilege status is active. The LCB public-records page warns that records received through the Public Records Act may not be used for commercial purposes and currently warns of possible list errors. Before importing any statewide list for outreach:
+1. Confirmed the customer is physically present at the licensed premises.
+2. Inspected an acceptable, unexpired government-issued ID.
+3. Confirmed the customer is legally eligible to purchase.
+4. Rechecked purchase quantities in the authoritative POS and traceability workflow.
+5. Collected payment in store through cash, Safe Harbor-supported payment, or another approved in-store provider.
+6. Completed the authoritative POS and required traceability records.
+7. Entered the POS receipt number in the website admin.
+8. Checked the in-person ID-verification box.
+9. Recorded the in-store payment provider.
+10. Marked the reservation `COMPLETED` only during lawful Washington retail sales hours and actual store operating hours.
 
-- document the source and source date;
-- document why the source may lawfully be used for commercial outreach;
-- retain the source URL and import batch;
-- verify important license records individually before relying on them;
-- keep license verification separate from bulk-email consent;
-- preserve do-not-contact and unsubscribe records.
+The website stores only the ID-verification timestamp. Do not upload, photograph, scan, or type government-ID numbers into the website.
 
-## Product and order test
+## 6. POS and traceability boundary
 
-1. Create a product with at least one package variant, SKU, price, and inventory quantity.
-2. Verify the product appears at `/shop`.
-3. Add the product to the cart and submit a test order using a Washington business address.
-4. Confirm inventory decreases.
-5. Confirm the order appears in `/admin` with the buyer, products, quantities, destination, license number, and total.
-6. Update the order through APPROVED, PACKING, READY_FOR_CARRIER, SHIPPED, and DELIVERED.
-7. Confirm carrier, tracking/route, and manifest fields persist.
-8. Submit a second test order and cancel it. Confirm inventory is restored.
+The website is not the regulatory system of record. Before launch:
 
-## Marketing campaign test
+1. Identify the authoritative cannabis POS and Washington traceability workflow used by the store.
+2. Create a written reconciliation procedure between web reservations, reserved inventory, completed POS receipts, cancellations, expirations, returns, recalls, and adjustments.
+3. Confirm staff knows that the website's inventory is customer-facing availability, not a replacement for required traceability records.
+4. Confirm recalled, quarantined, expired, or otherwise restricted products are immediately removed from the public menu.
+5. Confirm all completed reservations have a matching POS receipt and lawful traceability record.
 
-1. Submit a test checkout with the marketing opt-in selected.
-2. Confirm the retailer appears in `/admin/marketing` as subscribed.
-3. Add one additional lawful Washington test contact manually.
-4. Create a draft using the New Product, Restock, or Availability template.
-5. Count the audience and confirm only subscribed Washington contacts are included.
-6. Send the campaign to the test audience.
-7. Confirm the email includes:
+## 7. Customer CRM and privacy
+
+1. Submit a reservation without marketing consent and confirm the customer is not opted in.
+2. Submit a reservation with the separate Washington-resident marketing consent and confirm the customer is marked `WA` and opted in.
+3. Confirm staff cannot enable marketing without documenting Washington residency.
+4. Confirm unsubscribe suppresses future marketing.
+5. Confirm transactional pickup messages can still be sent after marketing opt-out.
+6. Submit access, correction, deletion, and marketing-opt-out requests through `/privacy`.
+7. Confirm requests appear under `/admin#compliance`.
+8. Verify identity before disclosing, correcting, or deleting information.
+9. Retain records required for licensing, transactions, tax, audit, security, fraud prevention, and legal obligations.
+10. Never store payment-card numbers, passwords, government-ID images, or unnecessary health information.
+
+## 8. Marketing campaign test
+
+1. Configure `RESEND_API_KEY`, `EMAIL_FROM`, `BUSINESS_POSTAL_ADDRESS`, and the final `SITE_URL`.
+2. Verify the sending domain.
+3. Create a draft campaign.
+4. Confirm campaign creation blocks obvious curative or therapeutic claims and youth-targeting language.
+5. Confirm the audience contains only opted-in Washington contacts who have not unsubscribed.
+6. Send only to controlled test contacts first.
+7. Confirm every email contains:
    - accurate sender and subject information;
-   - a clear advertisement disclosure;
-   - a visible 21+ notice;
+   - an advertising and 21+ disclosure;
    - all four Washington cannabis warnings;
-   - the valid physical postal address;
+   - the valid postal address;
    - a working unsubscribe link.
-8. Use the unsubscribe link and confirm the contact changes to UNSUBSCRIBED.
-9. Confirm a later campaign excludes that contact.
-10. Test CSV import only with contacts whose marketing status and Washington business location are documented.
+8. Confirm bulk marketing is never sent automatically by the automation worker.
+9. Review every image, price, statement, audience, promotion, and offer before approval.
 
-## Marketing content restrictions
+Do not publish content that is false or misleading, promotes overconsumption, claims curative or therapeutic effects, depicts alcohol, tobacco, nicotine, motor vehicles, youth, toys, cartoons, or youth-oriented themes, targets people outside Washington, prices cannabis below acquisition cost, or offers prohibited giveaways.
 
-Before sending, review every campaign for the current Washington rules. Do not publish content that:
+## 9. Automation test
 
-- is false or misleading;
-- promotes overconsumption;
-- makes curative or therapeutic claims;
-- depicts alcohol, tobacco, nicotine, motor vehicles, youth, toys, cartoons, or youth-oriented imagery;
-- specifically targets people outside Washington;
-- advertises a product below lawful cost restrictions;
-- advertises prohibited giveaways.
+1. Lower one package below the configured threshold and confirm a low-inventory alert appears.
+2. Restore inventory and confirm the alert resolves.
+3. Age a test reservation and confirm the stalled-order alert appears.
+4. Mark a test order ready and age it beyond the threshold to confirm the unclaimed-order alert.
+5. Confirm lapsed-customer automation creates a campaign draft only and never sends it.
+6. Configure `AUTOMATION_ALERT_EMAIL` and test the daily internal digest.
+7. Confirm automation run history and errors are visible.
 
-The platform inserts required warnings and unsubscribe controls, but Cory remains responsible for the campaign subject, copy, audience source, images, pricing claims, and license compliance.
+## 10. Public website and search
 
-## Compliance boundary
+1. Confirm the homepage, menu, privacy, terms, accessibility, and 404 pages render on desktop and mobile.
+2. Confirm all four required Washington cannabis warnings appear visibly on every public page.
+3. Confirm warning text is at least 10 percent of the largest advertising type.
+4. Confirm the site states 21+ and does not target people outside Washington.
+5. Confirm the menu has no medical or therapeutic claims.
+6. Confirm `/pickup`, `/admin`, `/api/`, and `/healthz` are not indexed.
+7. Confirm canonical URLs, structured data, robots.txt, and sitemap.xml use the final HTTPS domain.
+8. Add `GOOGLE_SITE_VERIFICATION` and verify Search Console.
+9. Set `ENABLE_INDEXING=true` only after every compliance and readiness metric is clear.
+10. Submit `/sitemap.xml` and inspect `/` and `/menu` in Search Console.
 
-The system is configured for licensed Washington business-to-business orders. It does not accept online payment and rejects delivery destinations outside Washington. Product fulfillment must still follow Cory's license privileges, Washington traceability requirements, and authorized transportation procedures.
+## 11. Final approval
 
-## Before enabling indexing
-
-- Replace `YOUR BRAND` and all contact placeholders.
-- Publish real license and business information only after verification.
-- Add real product photography and descriptions.
-- Confirm cannabis warnings in the age gate and footer.
-- Confirm privacy and terms content.
-- Test desktop and mobile ordering.
-- Test CRM account import, outreach history, tasks, orders, and source controls.
-- Test campaign creation, delivery, and unsubscribe behavior.
-- Set `ENABLE_INDEXING=true` only after final approval.
+Before opening the reservation system to customers, obtain review from the store's Washington cannabis compliance professional or attorney for the final store-specific configuration, local rules, payment setup, promotions, privacy notice, marketing practices, POS workflow, and traceability procedure.
