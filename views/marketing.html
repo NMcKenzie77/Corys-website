@@ -15,7 +15,7 @@
     <form class="login-card" data-login-form>
       <p class="eyebrow">{{siteName}}</p>
       <h1>Campaign center</h1>
-      <p>Sign in with the same administrator account used for products and orders.</p>
+      <p>Sign in with the same administrator account used for products, orders, and the retailer CRM.</p>
       <label>Email<input type="email" name="email" required autocomplete="username" /></label>
       <label>Password<input type="password" name="password" required autocomplete="current-password" /></label>
       <button type="submit">Sign in</button>
@@ -29,6 +29,7 @@
       <nav>
         <button class="active" data-view-button="campaigns">Campaigns</button>
         <button data-view-button="subscribers">Subscribers</button>
+        <a href="/admin/crm">Retailer CRM</a>
         <a href="/admin">Products &amp; orders</a>
       </nav>
       <div class="sidebar-footer">
@@ -103,7 +104,7 @@
           </form>
           <form class="subscriber-card" data-import-form>
             <p class="eyebrow">CSV import</p><h2>Import retailer subscribers</h2>
-            <p>Headers: <code>businessName, contactName, email, licenseNumber, state</code>. Imported contacts are treated as opted in, so only upload a lawful Washington list.</p>
+            <p>Headers: <code>businessName, contactName, email, licenseNumber, state</code>. Imported contacts are treated as opted in, so only upload a lawful Washington list with documented marketing permission.</p>
             <input type="file" accept=".csv,text/csv" data-csv-file required />
             <button class="primary" type="submit">Import CSV</button><p class="form-status" data-import-status></p>
           </form>
