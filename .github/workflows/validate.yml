@@ -30,8 +30,10 @@ jobs:
           node --check crm-api.js
           node --check crm-order-sync.js
           node --check automation-api.js
+          node --check compliance-api.js
           node --check auth.js
           node --check db.js
+          node --check scripts/validate-site.js
 
       - name: Validate browser JavaScript
         run: |
@@ -41,3 +43,9 @@ jobs:
           node --check public/js/marketing.js
           node --check public/js/crm.js
           node --check public/js/automations.js
+          node --check public/js/compliance.js
+          node --check public/js/privacy.js
+          node --check public/js/checkout-consent.js
+
+      - name: Validate search and CRM compliance controls
+        run: node scripts/validate-site.js
