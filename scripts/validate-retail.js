@@ -30,10 +30,13 @@ if (packageJson.scripts.start !== 'node retail-server.js') {
   'views/retail/pages/privacy.html',
   'views/retail/pages/terms.html',
   'views/retail/admin.html',
+  'public/admin/customers/index.html',
+  'public/css/retail-customers.css',
   'public/js/retail-site.js',
   'public/js/retail-menu.js',
   'public/js/retail-pickup.js',
-  'public/js/retail-admin.js'
+  'public/js/retail-admin.js',
+  'public/js/retail-customers.js'
 ].forEach((file) => {
   if (!fs.existsSync(path.join(root, file))) errors.push(`${file}: required retail file is missing`);
 });
@@ -88,6 +91,16 @@ requireText('public/js/retail-admin.js', 'data-v="limitCategory"', 'staff must a
 requireText('views/retail/admin.html', 'name="idVerified"', 'staff completion form must record in-person ID verification');
 requireText('views/retail/admin.html', 'name="posReceiptNumber"', 'staff completion form must record POS receipt');
 
+requireText('public/admin/customers/index.html', '<title>Customer CRM</title>', 'dedicated customer CRM page must have its own document');
+requireText('public/admin/customers/index.html', 'data-crm-shell', 'dedicated customer CRM must have an authenticated staff shell');
+requireText('public/admin/customers/index.html', '/admin/customers/', 'dedicated customer CRM URL must be visible to staff');
+requireText('public/js/retail-customers.js', '/api/admin/me', 'dedicated customer CRM must verify the administrator session');
+requireText('public/js/retail-customers.js', '/api/admin/retail/customers', 'dedicated customer CRM must use protected customer APIs');
+requireText('public/js/retail-customers.js', "searchParams.set('customer'", 'customer profiles must have bookmarkable deep links');
+requireText('public/js/retail-customers.js', 'marketingState', 'customer CRM must preserve Washington marketing residency controls');
+requireText('retail-api.js', "app.get('/api/admin/retail/customers', requireAdmin", 'customer directory API must require administrator authentication');
+requireText('retail-api.js', "app.get('/api/admin/retail/customers/:id', requireAdmin", 'customer profile API must require administrator authentication');
+
 const home = read('views/retail/pages/home.html');
 forbidText('views/retail/pages/home.html', 'producer-processor', 'homepage must not describe a dispensary as a producer-processor');
 forbidText('views/retail/pages/home.html', 'wholesale catalog', 'homepage must not contain wholesale calls to action');
@@ -98,4 +111,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Retail pickup, advertising, CRM, and compliance structure validated.');
+console.log('Retail pickup, advertising, dedicated customer CRM, and compliance structure validated.');
