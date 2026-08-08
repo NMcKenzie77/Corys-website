@@ -37,6 +37,13 @@
   border-bottom: 0;
 }
 
+.google-attribution {
+  display: block;
+  margin-top: .35rem;
+  font-size: .72rem;
+  opacity: .72;
+}
+
 .place-suggestion:hover,
 .place-suggestion:focus-visible {
   background: rgba(255,255,255,.08);
