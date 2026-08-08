@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 
 const COOKIE_NAME = 'cory_admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
+const PLATFORM_SESSION_TTL_SECONDS = 60 * 60;
 
 function getSecret() {
   const secret = process.env.SESSION_SECRET;
@@ -16,12 +17,30 @@ function sign(value) {
   return crypto.createHmac('sha256', getSecret()).update(value).digest('base64url');
 }
 
-function issueSession(email) {
+function issueSignedSession(claims, ttlSeconds) {
   const payload = Buffer.from(JSON.stringify({
-    email: String(email).toLowerCase(),
-    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
+    ...claims,
+    exp: Math.floor(Date.now() / 1000) + ttlSeconds
   })).toString('base64url');
   return `${payload}.${sign(payload)}`;
+}
+
+function issueSession(email) {
+  return issueSignedSession({
+    kind: 'LOCAL_STAFF',
+    email: String(email).toLowerCase()
+  }, SESSION_TTL_SECONDS);
+}
+
+function issuePlatformSession(claims) {
+  return issueSignedSession({
+    kind: 'PLATFORM_SUPER_ADMIN',
+    platform: true,
+    role: 'SUPER_ADMIN',
+    actorRef: 'ARKON_PLATFORM_SUPER_ADMIN',
+    clientCompanyId: String(claims.clientCompanyId || ''),
+    runtimeKey: String(claims.runtimeKey || '')
+  }, PLATFORM_SESSION_TTL_SECONDS);
 }
 
 function verifySession(token) {
@@ -32,7 +51,12 @@ function verifySession(token) {
   if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
   try {
     const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    if (!parsed.email || parsed.exp < Math.floor(Date.now() / 1000)) return null;
+    if (parsed.exp < Math.floor(Date.now() / 1000)) return null;
+    if (parsed.kind === 'PLATFORM_SUPER_ADMIN') {
+      if (parsed.platform !== true || parsed.role !== 'SUPER_ADMIN' || !parsed.clientCompanyId || !parsed.runtimeKey) return null;
+      return parsed;
+    }
+    if (!parsed.email) return null;
     return parsed;
   } catch (_error) {
     return null;
@@ -50,14 +74,22 @@ async function verifyAdminCredentials(email, password) {
   return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
 }
 
-function setSessionCookie(res, email) {
-  res.cookie(COOKIE_NAME, issueSession(email), {
+function cookieOptions(maxAgeSeconds) {
+  return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: SESSION_TTL_SECONDS * 1000,
+    maxAge: maxAgeSeconds * 1000,
     path: '/'
-  });
+  };
+}
+
+function setSessionCookie(res, email) {
+  res.cookie(COOKIE_NAME, issueSession(email), cookieOptions(SESSION_TTL_SECONDS));
+}
+
+function setPlatformSessionCookie(res, claims) {
+  res.cookie(COOKIE_NAME, issuePlatformSession(claims), cookieOptions(PLATFORM_SESSION_TTL_SECONDS));
 }
 
 function clearSessionCookie(res) {
@@ -81,6 +113,7 @@ module.exports = {
   verifySession,
   verifyAdminCredentials,
   setSessionCookie,
+  setPlatformSessionCookie,
   clearSessionCookie,
   requireAdmin
 };

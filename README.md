@@ -15,7 +15,7 @@ The application is a modular Node/Express + PostgreSQL monolith. The `cory-core/
 - `channels.js` — durable notification outbox and channel capability gates.
 - `adapter-contract.js` — replaceable inbound/outbound channel contract.
 - `maps.js` — Google Places autocomplete and traffic-aware Google Routes estimates without persisting the customer's origin.
-- `api.js` — public reservation/drive-time APIs plus staff/Super Admin operational endpoints.
+- `api.js` — public reservation/drive-time APIs plus staff operations and Platform-owned Super Admin access.\n- `platform.js` — one-time ARKON Platform Super Admin handoff exchange; Cory does not own Super Admin credentials.
 
 ## Canonical retail model
 
@@ -40,7 +40,7 @@ Creating, releasing, consuming, receiving, damaging, or adjusting inventory writ
 ## Omnichannel status
 
 - Website: enabled.
-- Email: transactional outbound is supported through Resend when configured. Inbound ordering adapter/provider is the next integration layer.
+- Email: transactional outbound is routed through ARKON Platform. Cory does not store Resend/SMTP credentials. Inbound ordering adapter/provider is the next integration layer.
 - Voice: adapter boundary is ready; provider configuration is not enabled yet.
 - SMS: policy-gated off until a US cannabis-permitted provider gives written approval and documented real-time inbound API/webhook support.
 - WhatsApp: policy-gated off because current WhatsApp Business policy prohibits facilitating recreational-drug transactions.
@@ -74,18 +74,20 @@ BUSINESS_EMAIL=
 BUSINESS_LICENSE_NUMBER=
 STORE_HOURS=
 
-ADMIN_EMAIL=
+ADMIN_EMAIL=                 # local Store Admin only
 ADMIN_PASSWORD_HASH=          # preferred over plaintext ADMIN_PASSWORD
-SUPER_ADMIN_NAME=
+STORE_ADMIN_NAME=
 
-RESEND_API_KEY=
-EMAIL_FROM=
+ARKON_PLATFORM_URL=https://platform.arkonsysai.com
+ARKON_PLATFORM_SERVICE_KEY=
+CORY_RUNTIME_KEY=cannabis-retail-shared
+CORY_PLATFORM_CLIENT_COMPANY_ID=
 
 GOOGLE_MAPS_API_KEY=
 GOOGLE_STORE_PLACE_ID=
 ```
 
-`ADMIN_EMAIL` is seeded into `retail_staff_users` as `SUPER_ADMIN` with `mfa_required=true`. MFA enforcement still must be enabled before production; the schema flag is not a substitute for the second authentication factor.
+`ADMIN_EMAIL` is seeded only as `STORE_ADMIN`. Super Admin is never a Cory-owned account: an authenticated ARKON Platform operator enters through a short-lived Platform handoff, which Cory exchanges server-to-server before issuing a one-hour Cory admin session. Store Admin MFA enforcement still must be enabled before production.
 
 ## Run and validate
 
@@ -102,9 +104,9 @@ The server initializes the base product schema, compliance schema, retail schema
 Do not treat this branch as production-ready until these gates are completed:
 
 1. PostgreSQL migration/restore test against a copy of production data.
-2. Super Admin MFA enforcement and individual staff login flow.
+2. Platform Super Admin MFA enforcement plus individual Store Admin/staff login flow.
 3. Concurrency tests for last-unit holds, cancel/expire, and legacy-order migration.
-4. Inbound email and voice provider configuration with signed webhook verification.
+4. ARKON Platform runtime/email binding plus inbound email and voice provider configuration with signed webhook verification.
 5. Written/provider validation before any cannabis SMS integration; WhatsApp stays disabled under current policy.
 6. Google Maps billing/API restrictions and production key configuration.
 7. Backup/PITR, monitoring, retention, and alerting verification in the hosting environment.
