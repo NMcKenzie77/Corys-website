@@ -580,7 +580,8 @@ function registerRetailApi(app) {
         (SELECT COALESCE(SUM(inventory_qty),0)::int FROM product_variants WHERE active=TRUE) units_available,
         (SELECT COUNT(*)::int FROM retail_orders WHERE status IN ('NEW','NEEDS_CLARIFICATION','CONFIRMED','PICKING','READY')) open_orders,
         (SELECT COUNT(*)::int FROM retail_customers) customers,
-        (SELECT COALESCE(SUM(total_cents),0)::bigint FROM retail_orders WHERE status='COMPLETED' AND completed_at>=NOW()-INTERVAL '30 days') completed_30d_cents,
+        (SELECT COALESCE(SUM(COALESCE(actual_total_cents,0)),0)::bigint FROM retail_orders WHERE status='COMPLETED' AND completed_at>=NOW()-INTERVAL '30 days') completed_30d_cents,
+        (SELECT COALESCE(SUM(total_cents),0)::bigint FROM retail_orders WHERE status='COMPLETED' AND completed_at>=NOW()-INTERVAL '30 days') completed_30d_estimated_cents,
         (SELECT COUNT(*)::int FROM retail_automation_alerts WHERE status='OPEN') open_alerts`);
       res.json({ ok: true, summary: result.rows[0], store: storeConfig() });
     } catch (error) { next(error); }
