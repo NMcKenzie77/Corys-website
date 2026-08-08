@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { withTransaction } = require('../db');
 const { normalizeEmail, text } = require('./identity');
+const { handleInboundEmail } = require('./email-agent');
 
 function objects(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -382,6 +383,11 @@ async function receiveEmail(email) {
       duplicate: false,
       conversationId: Number(conversation.id),
       eventId: Number(event.rows[0].id),
+      messageId: Number(message.rows[0].id),
+      identityId: identity.identityId,
+      customerId: identity.customerId,
+      identityAmbiguous: identity.ambiguous,
+      identityMismatch,
       needsStaff: true,
       intent,
       reservationCode: reservationCode || null,
@@ -400,7 +406,24 @@ async function receivePlatformEmail(req, res, next) {
 
     const email = normalizeInboundEmail(req.body || {});
     const result = await receiveEmail(email);
-    return res.status(result.duplicate ? 200 : 202).json(result);
+    if (result.duplicate) return res.status(200).json(result);
+
+    let automation = null;
+    try {
+      automation = await handleInboundEmail({ ...result, email });
+    } catch (automationError) {
+      console.error('Inbound email automation failed; message remains in staff queue', {
+        conversationId: result.conversationId,
+        error: automationError.message
+      });
+      automation = { status: 'HUMAN', reason: 'AUTOMATION_ERROR' };
+    }
+
+    return res.status(202).json({
+      ...result,
+      needsStaff: automation.status === 'HUMAN',
+      automation
+    });
   } catch (error) {
     if (error && error.status) return res.status(error.status).json({ ok: false, error: error.message });
     next(error);
