@@ -160,7 +160,7 @@ function consentGuard(req, res, next) {
 
 function registerCompliance(app) {
   app.use((req, res, next) => {
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=(), usb=()');
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
 
