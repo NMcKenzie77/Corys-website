@@ -227,9 +227,10 @@ function registerRetailLegalControls(app) {
       const target = text(req.body && req.body.status, 30).toUpperCase();
       if (target === 'COMPLETED') {
         if (!bool(req.body.idVerified)) throw httpError('Verify an acceptable, unexpired government-issued ID before completing the sale.');
-        if (!text(req.body.posReceiptNumber, 120)) throw httpError('Record the in-store POS receipt number before completing the sale.');
+        const completionReference = text(req.body.completionReference || req.body.posReceiptNumber, 120);
+        if (!completionReference) throw httpError('Record the in-store transaction or receipt reference before completing the pickup.');
         if (currentWashingtonHour() < 8) throw httpError('Washington cannabis retail sales may not be completed before 8:00 a.m.');
-        const provider = text(req.body.paymentProvider || 'IN_STORE', 120);
+        const provider = text(req.body.paymentProvider || 'IN_STORE_MANUAL', 120);
         wrapSuccessfulJson(res, async () => {
           await pool.query(`
             UPDATE retail_orders SET payment_provider=$1, completed_in_store=TRUE

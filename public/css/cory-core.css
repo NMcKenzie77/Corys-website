@@ -1,0 +1,56 @@
+.drive-time-tool {
+  position: relative;
+}
+
+.drive-time-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: .55rem;
+  align-items: center;
+}
+
+.drive-time-row input {
+  min-width: 0;
+}
+
+.place-suggestions {
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: .6rem;
+  margin-top: .35rem;
+  overflow: hidden;
+  background: #141712;
+}
+
+.place-suggestion {
+  display: block;
+  width: 100%;
+  padding: .7rem .8rem;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.place-suggestion:last-child {
+  border-bottom: 0;
+}
+
+.google-attribution {
+  display: block;
+  margin-top: .35rem;
+  font-size: .72rem;
+  opacity: .72;
+}
+
+.place-suggestion:hover,
+.place-suggestion:focus-visible {
+  background: rgba(255,255,255,.08);
+}
+
+@media (max-width: 760px) {
+  .drive-time-row {
+    grid-template-columns: 1fr;
+  }
+}

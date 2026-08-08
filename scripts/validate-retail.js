@@ -75,7 +75,7 @@ const legal = read('retail-legal-controls.js');
   'INFUSED_LIQUID_LOW_DOSE_THC_MG: 200',
   'cannot be priced below its current acquisition cost',
   'Verify an acceptable, unexpired government-issued ID',
-  'Record the in-store POS receipt number',
+  'Record the in-store transaction or receipt reference before completing the pickup.',
   'Shipping, delivery, and online cannabis payment are not available',
   "marketingState, 2).toUpperCase() !== 'WA'"
 ].forEach((control) => {
