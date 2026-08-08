@@ -1,7 +1,7 @@
 'use strict';
 
 const { pool } = require('../db');
-const { requireAdmin } = require('../auth');\nconst { platformAdminHandoff } = require('./platform');
+const { requireAdmin } = require('../auth');\nconst { platformAdminHandoff } = require('./platform');\nconst { receivePlatformEmail } = require('./inbound');
 const { adjustInventory } = require('./inventory');
 const { channelCapabilities } = require('./channels');
 const { autocompletePlaces, computeDriveTime } = require('./maps');
@@ -105,6 +105,7 @@ async function primaryLocation() {
 
 function registerCoryCoreApi(app) {
   app.get('/auth/platform-admin', platformAdminHandoff);
+  app.post('/api/internal/provider-events/email', receivePlatformEmail);
 
   // These routes intentionally register before the legacy retail handlers. The
   // legal-control middleware still runs first in retail-server.js.
