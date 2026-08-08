@@ -356,7 +356,11 @@ async function transitionReservation(id, body, actorRef) {
     if (body.version != null && Number(body.version) !== Number(order.version)) throw httpError('This reservation changed in another session. Refresh and try again.', 409, 'VERSION_CONFLICT');
 
     let pickupPatch = null;
-    if (target === 'CONFIRMED') pickupPatch = await confirmExistingReservation(client, order, body, actorRef);
+    // Pre-core website orders already subtracted inventory when created. Do not
+    // add a second hold during migration or those reservations double-count.
+    if (target === 'CONFIRMED' && order.origin_conversation_id) {
+      pickupPatch = await confirmExistingReservation(client, order, body, actorRef);
+    }
 
     if (['CANCELLED','EXPIRED'].includes(target)) {
       const active = await client.query(`SELECT COUNT(*)::int count FROM retail_inventory_holds WHERE order_id=$1 AND state='ACTIVE'`, [id]);
@@ -373,6 +377,11 @@ async function transitionReservation(id, body, actorRef) {
       else if (order.origin_conversation_id) throw httpError('This reservation has no active inventory hold. Staff reconciliation is required.', 409, 'MISSING_HOLD');
     }
 
+    const requestedActualTotal = body.actualTotalCents == null ? null : Number(body.actualTotalCents);
+    if (requestedActualTotal != null && (!Number.isInteger(requestedActualTotal) || requestedActualTotal < 0)) {
+      throw httpError('Actual in-store total must be a non-negative number of cents.');
+    }
+
     const updated = await client.query(`
       UPDATE retail_orders SET
         status=$1,
@@ -385,9 +394,10 @@ async function transitionReservation(id, body, actorRef) {
         ready_at=CASE WHEN $1='READY' THEN COALESCE(ready_at,NOW()) ELSE ready_at END,
         completed_at=CASE WHEN $1='COMPLETED' THEN COALESCE(completed_at,NOW()) ELSE completed_at END,
         completed_in_store=CASE WHEN $1='COMPLETED' THEN TRUE ELSE completed_in_store END,
+        actual_total_cents=CASE WHEN $1='COMPLETED' AND $7::integer IS NOT NULL THEN $7::integer ELSE actual_total_cents END,
         version=version+1,
         updated_at=NOW()
-      WHERE id=$7
+      WHERE id=$8
       RETURNING *
     `, [
       target,
@@ -396,6 +406,7 @@ async function transitionReservation(id, body, actorRef) {
       pickupPatch ? pickupPatch.pickupWindow : '',
       pickupPatch ? pickupPatch.pickupAt : null,
       pickupPatch ? pickupPatch.expiresAt : null,
+      requestedActualTotal,
       id
     ]);
 
@@ -415,7 +426,11 @@ async function transitionReservation(id, body, actorRef) {
     `, [id, target, text(body.note, 1000), actorRef]);
 
     if (target === 'COMPLETED' && order.status !== 'COMPLETED') {
-      await client.query(`UPDATE retail_customers SET order_count=order_count+1,total_spend_cents=total_spend_cents+$1,last_order_at=NOW(),updated_at=NOW() WHERE id=$2`, [order.total_cents, order.customer_id]);
+      await client.query(`UPDATE retail_customers SET
+        order_count=order_count+1,
+        total_spend_cents=total_spend_cents+COALESCE($1,0),
+        last_order_at=NOW(),updated_at=NOW()
+        WHERE id=$2`, [requestedActualTotal, order.customer_id]);
     }
 
     await client.query(`
