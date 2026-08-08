@@ -17,7 +17,7 @@ function channelCapabilities() {
     WEB: { enabled: true, inbound: true, outbound: true, reason: 'Core website channel' },
     EMAIL: {
       enabled: emailReady,
-      inbound: false,
+      inbound: emailReady,
       outbound: emailReady,
       reason: emailReady ? 'Transactional email routed through ARKON Platform' : 'ARKON Platform email route is not configured'
     },
@@ -34,13 +34,22 @@ async function sendEmail(payload) {
 
   const code = text(payload.reservationCode, 100);
   const needsClarification = payload.status === 'NEEDS_CLARIFICATION';
-  const subject = needsClarification ? `Pickup reservation ${code} needs a pickup time` : `Pickup reservation ${code} confirmed`;
-  const plainText = needsClarification
-    ? `Pickup reservation ${code}. We have your request, but we need an exact pickup time before inventory can be held. Payment and final sale happen inside the store.`
-    : `Pickup reservation ${code} confirmed. Your items are reserved for pickup. Bring a valid government-issued photo ID. Payment and final sale happen inside the store.`;
-  const html = needsClarification
-    ? `<h2>Pickup reservation ${code}</h2><p>We have your request, but we need an exact pickup time before inventory can be held.</p><p>Payment and final sale happen inside the store.</p>`
-    : `<h2>Pickup reservation ${code} confirmed</h2><p>Your items are reserved for pickup.</p><p>Bring a valid government-issued photo ID. Payment and final sale happen inside the store.</p>`;
+  const genericSubject = text(payload.subject, 500);
+  const genericText = text(payload.text, 8000);
+  const generic = Boolean(genericSubject && genericText);
+  const subject = generic
+    ? genericSubject
+    : (needsClarification ? `Pickup reservation ${code} needs a pickup time` : `Pickup reservation ${code} confirmed`);
+  const plainText = generic
+    ? genericText
+    : (needsClarification
+      ? `Pickup reservation ${code}. We have your request, but we need an exact pickup time before inventory can be held. Payment and final sale happen inside the store.`
+      : `Pickup reservation ${code} confirmed. Your items are reserved for pickup. Bring a valid government-issued photo ID. Payment and final sale happen inside the store.`);
+  const html = generic
+    ? undefined
+    : (needsClarification
+      ? `<h2>Pickup reservation ${code}</h2><p>We have your request, but we need an exact pickup time before inventory can be held.</p><p>Payment and final sale happen inside the store.</p>`
+      : `<h2>Pickup reservation ${code} confirmed</h2><p>Your items are reserved for pickup.</p><p>Bring a valid government-issued photo ID. Payment and final sale happen inside the store.</p>`);
 
   const platformUrl = text(process.env.ARKON_PLATFORM_URL, 500).replace(/\/+$/, '');
   const runtimeKey = text(process.env.CORY_RUNTIME_KEY, 100);
@@ -56,7 +65,7 @@ async function sendEmail(payload) {
       to: [to],
       subject,
       text: plainText,
-      html,
+      ...(html ? { html } : {}),
       fromName: text(process.env.SITE_NAME, 120) || 'Cory'
     })
   });
