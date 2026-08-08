@@ -27,7 +27,7 @@ Reservation lifecycle:
 
 Terminal exits are `CANCELLED`, `EXPIRED`, and `REJECTED`.
 
-An ASAP confirmed reservation holds inventory for two hours. A scheduled reservation holds inventory until one hour after the promised pickup time. Scheduled requests without an exact pickup time go to `NEEDS_CLARIFICATION`; Cory does not invent a hold deadline.
+An ASAP confirmed reservation holds inventory for two hours. Scheduled pickup is same-day only in the store's Pacific time zone, and a scheduled reservation holds inventory until one hour after the promised pickup time. Scheduled requests without an exact pickup time go to `NEEDS_CLARIFICATION`; Cory does not invent a hold deadline.
 
 ## Inventory semantics
 
