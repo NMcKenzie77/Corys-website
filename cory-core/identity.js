@@ -35,14 +35,23 @@ async function upsertIdentity(client, kind, normalized, provider = '') {
   return result.rows[0];
 }
 
-async function linkedCustomerIds(client, identityIds) {
+async function activeIdentityLinks(client, identityIds) {
   if (!identityIds.length) return [];
   const result = await client.query(`
-    SELECT DISTINCT customer_id
+    SELECT identity_id,customer_id
     FROM retail_customer_identity_links
     WHERE identity_id=ANY($1::bigint[]) AND status='ACTIVE'
   `, [identityIds]);
-  return result.rows.map((row) => Number(row.customer_id));
+  return result.rows;
+}
+
+function classifyIdentityMatches(identityIds, links) {
+  const customerIds = [...new Set(links.map((row) => Number(row.customer_id)))];
+  const linkedIdentityIds = new Set(links.map((row) => Number(row.identity_id)));
+  return {
+    customerIds,
+    partialMatch: customerIds.length === 1 && identityIds.length > 1 && linkedIdentityIds.size !== identityIds.length
+  };
 }
 
 async function resolveCustomer(client, input) {
@@ -58,10 +67,19 @@ async function resolveCustomer(client, input) {
   if (normalizedEmail) identities.push(await upsertIdentity(client, 'EMAIL', normalizedEmail));
   if (normalizedPhone) identities.push(await upsertIdentity(client, 'PHONE', normalizedPhone));
 
-  const customerIds = await linkedCustomerIds(client, identities.map((item) => Number(item.id)));
+  const identityIds = identities.map((item) => Number(item.id));
+  const links = await activeIdentityLinks(client, identityIds);
+  const { customerIds, partialMatch } = classifyIdentityMatches(identityIds, links);
   if (customerIds.length > 1) {
     throw httpError(
       'Those contact details match more than one customer profile. Staff review is required before changing a reservation.',
+      409,
+      'IDENTITY_AMBIGUOUS'
+    );
+  }
+  if (partialMatch) {
+    throw httpError(
+      'One contact detail matches an existing customer but the other does not. Staff review is required before linking them.',
       409,
       'IDENTITY_AMBIGUOUS'
     );
@@ -107,6 +125,7 @@ async function resolveCustomer(client, input) {
 }
 
 module.exports = {
+  classifyIdentityMatches,
   httpError,
   normalizeEmail,
   normalizePhone,
