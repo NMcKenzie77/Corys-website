@@ -24,6 +24,19 @@
         <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required maxlength="200"></label>
         <label class="field"><span>Phone</span><input name="phone" type="tel" autocomplete="tel" required maxlength="50"></label>
         <label class="field span-two"><span>Pickup window</span><select name="pickupWindow" data-pickup-window required><option value="">Loading pickup options…</option></select></label>
+        <label class="field span-two" data-pickup-time-wrap hidden><span>Exact pickup time</span><input name="pickupAt" type="datetime-local" data-pickup-at></label>
+
+        <div class="field span-two drive-time-tool">
+          <span>Estimate your drive to the store</span>
+          <div class="drive-time-row">
+            <input type="text" autocomplete="street-address" placeholder="Starting address" data-drive-origin aria-label="Starting address for drive-time estimate">
+            <button class="button secondary" type="button" data-use-location>Use my location</button>
+            <button class="button secondary" type="button" data-estimate-drive>Estimate drive</button>
+          </div>
+          <div class="place-suggestions" data-place-suggestions hidden></div>
+          <p class="small" data-drive-result>Your address or location is used only to calculate this estimate and is not saved with your reservation.</p>
+        </div>
+
         <label class="field span-two"><span>Notes for store staff</span><textarea name="notes" rows="3" maxlength="2000" placeholder="Optional pickup note. Do not include payment-card, password, health, or government-ID information."></textarea></label>
       </div>
 
@@ -35,7 +48,7 @@
       <label class="check"><input type="checkbox" name="privacyAccepted" value="true" required><span>I have reviewed and accept the <a href="/privacy" target="_blank" rel="noopener">Privacy Notice</a> and <a href="/terms" target="_blank" rel="noopener">Pickup Terms</a>.</span></label>
       <label class="check"><input type="checkbox" name="marketingConsent" value="true"><span>I am a Washington resident and agree to receive optional 21+ menu and store marketing emails. This is not required to reserve products, and I can unsubscribe at any time.</span></label>
 
-      <button class="button primary" type="submit" data-pickup-submit>Submit pickup reservation</button>
+      <button class="button primary" type="submit" data-pickup-submit>Reserve for pickup</button>
       <p class="status" data-pickup-status role="status"></p>
     </form>
   </div>
