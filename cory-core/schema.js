@@ -147,6 +147,7 @@ async function ensureCoryCoreSchema() {
     ALTER TABLE retail_orders ADD COLUMN IF NOT EXISTS eligibility_attested_at TIMESTAMPTZ;
     ALTER TABLE retail_orders ADD COLUMN IF NOT EXISTS origin_conversation_id BIGINT REFERENCES retail_conversations(id);
     ALTER TABLE retail_orders ADD COLUMN IF NOT EXISTS completion_reference TEXT NOT NULL DEFAULT '';
+    ALTER TABLE retail_orders ADD COLUMN IF NOT EXISTS actual_total_cents INTEGER CHECK (actual_total_cents IS NULL OR actual_total_cents >= 0);
     ALTER TABLE retail_orders DROP CONSTRAINT IF EXISTS retail_orders_status_check;
     ALTER TABLE retail_orders ADD CONSTRAINT retail_orders_status_check
       CHECK (status IN ('NEW','NEEDS_CLARIFICATION','CONFIRMED','PICKING','READY','COMPLETED','CANCELLED','EXPIRED','REJECTED'));
