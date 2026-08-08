@@ -1,7 +1,7 @@
 'use strict';
 
 const { pool } = require('../db');
-const { requireAdmin } = require('../auth');
+const { requireAdmin } = require('../auth');\nconst { platformAdminHandoff } = require('./platform');
 const { adjustInventory } = require('./inventory');
 const { channelCapabilities } = require('./channels');
 const { autocompletePlaces, computeDriveTime } = require('./maps');
@@ -29,6 +29,19 @@ async function adminRole(email) {
 
 async function attachStaff(req, res, next) {
   try {
+    if (req.admin && req.admin.kind === 'PLATFORM_SUPER_ADMIN' && req.admin.platform === true) {
+      req.staff = {
+        id: null,
+        email: 'platform-admin@arkon.internal',
+        display_name: 'ARKON Platform',
+        role: 'SUPER_ADMIN',
+        active: true,
+        mfa_required: true,
+        platform_client_company_id: req.admin.clientCompanyId,
+        platform_runtime_key: req.admin.runtimeKey
+      };
+      return next();
+    }
     const staff = await adminRole(req.admin && req.admin.email);
     if (!staff) return res.status(403).json({ ok: false, error: 'This admin account is not assigned an active Cory role.' });
     req.staff = staff;
@@ -91,6 +104,8 @@ async function primaryLocation() {
 }
 
 function registerCoryCoreApi(app) {
+  app.get('/auth/platform-admin', platformAdminHandoff);
+
   // These routes intentionally register before the legacy retail handlers. The
   // legal-control middleware still runs first in retail-server.js.
   app.get('/api/retail/products', async (_req, res, next) => {
@@ -129,7 +144,7 @@ function registerCoryCoreApi(app) {
     res.json({
       ok: true,
       user: {
-        id: Number(req.staff.id),
+        id: req.staff.id == null ? null : Number(req.staff.id),
         email: req.staff.email,
         displayName: req.staff.display_name,
         role: req.staff.role,
