@@ -60,7 +60,7 @@ async function publicProducts() {
       SELECT SUM(ih.quantity)::int held_qty
       FROM retail_inventory_holds ih
       JOIN retail_locations l ON l.id=ih.location_id
-      WHERE ih.variant_id=v.id AND ih.state='ACTIVE' AND ih.expires_at>NOW() AND l.location_key='primary'
+      WHERE ih.variant_id=v.id AND ih.state='ACTIVE' AND l.location_key='primary'
     ) h ON TRUE
     WHERE p.active=TRUE
     GROUP BY p.id
@@ -204,8 +204,8 @@ function registerCoryCoreApi(app) {
       const location = await primaryLocation();
       const rows = await pool.query(`
         SELECT p.id product_id,p.name,p.brand,p.category,v.id variant_id,v.sku,v.label,v.inventory_qty on_hand_qty,
-          COALESCE(SUM(h.quantity) FILTER (WHERE h.state='ACTIVE' AND h.expires_at>NOW()),0)::int held_qty,
-          GREATEST(0,v.inventory_qty-COALESCE(SUM(h.quantity) FILTER (WHERE h.state='ACTIVE' AND h.expires_at>NOW()),0))::int available_qty
+          COALESCE(SUM(h.quantity) FILTER (WHERE h.state='ACTIVE'),0)::int held_qty,
+          GREATEST(0,v.inventory_qty-COALESCE(SUM(h.quantity) FILTER (WHERE h.state='ACTIVE'),0))::int available_qty
         FROM products p
         JOIN product_variants v ON v.product_id=p.id
         LEFT JOIN retail_inventory_holds h ON h.variant_id=v.id AND h.location_id=$1
