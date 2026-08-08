@@ -3,6 +3,8 @@
 const { pool, withTransaction } = require('../db');
 const { httpError, text } = require('./identity');
 
+const EXPIRABLE_STATUSES = ['NEW','NEEDS_CLARIFICATION','CONFIRMED','PICKING','READY'];
+
 async function loadVariantsForUpdate(client, locationId, requested) {
   const ids = [...new Set(requested.map((item) => Number(item.variantId)))];
   const result = await client.query(`
@@ -14,7 +16,7 @@ async function loadVariantsForUpdate(client, locationId, requested) {
       COALESCE((
         SELECT SUM(h.quantity)::int
         FROM retail_inventory_holds h
-        WHERE h.location_id=$2 AND h.variant_id=v.id AND h.state='ACTIVE' AND h.expires_at>NOW()
+        WHERE h.location_id=$2 AND h.variant_id=v.id AND h.state='ACTIVE'
       ),0) AS held_qty
     FROM product_variants v
     JOIN products p ON p.id=v.product_id
@@ -45,7 +47,7 @@ async function availableAfterHold(client, locationId, variantId) {
   const result = await client.query(`
     SELECT v.inventory_qty - COALESCE((
       SELECT SUM(h.quantity)::int FROM retail_inventory_holds h
-      WHERE h.location_id=$1 AND h.variant_id=v.id AND h.state='ACTIVE' AND h.expires_at>NOW()
+      WHERE h.location_id=$1 AND h.variant_id=v.id AND h.state='ACTIVE'
     ),0) AS available
     FROM product_variants v WHERE v.id=$2
   `, [locationId, variantId]);
@@ -180,9 +182,10 @@ async function expireHolds() {
   for (const row of due.rows) {
     await withTransaction(async (client) => {
       const order = await client.query('SELECT * FROM retail_orders WHERE id=$1 FOR UPDATE', [row.order_id]);
-      if (!order.rowCount || !['CONFIRMED','NEW','NEEDS_CLARIFICATION'].includes(order.rows[0].status)) return;
+      if (!order.rowCount || !EXPIRABLE_STATUSES.includes(order.rows[0].status)) return;
       await releaseOrderHolds(client, row.order_id, 'hold-expiry-worker', 'Reservation hold expired');
       await client.query(`UPDATE retail_orders SET status='EXPIRED',version=version+1,updated_at=NOW() WHERE id=$1`, [row.order_id]);
+      await client.query(`UPDATE retail_picking_tasks SET status='CLOSED',updated_at=NOW() WHERE order_id=$1 AND status<>'CLOSED'`, [row.order_id]);
       await client.query(`INSERT INTO retail_order_history(order_id,status,note,changed_by) VALUES($1,'EXPIRED','Inventory hold expired','system')`, [row.order_id]);
       await client.query(`INSERT INTO retail_audit_events(actor_type,actor_ref,action,entity_type,entity_id,after_json,reference)
         VALUES('SYSTEM','hold-expiry-worker','RESERVATION_EXPIRED','RESERVATION',$1,$2::jsonb,$3)`, [String(row.order_id), JSON.stringify({ status: 'EXPIRED' }), `order:${row.order_id}`]);
@@ -193,6 +196,7 @@ async function expireHolds() {
 }
 
 module.exports = {
+  EXPIRABLE_STATUSES,
   adjustInventory,
   consumeOrderHolds,
   createHolds,
