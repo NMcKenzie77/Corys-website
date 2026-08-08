@@ -53,7 +53,7 @@ async function ensureCoryCoreSchema() {
       mfa_required BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      CHECK (role IN ('SUPER_ADMIN','STORE_ADMIN','STAFF','SYSTEM'))
+      CHECK (role IN ('STORE_ADMIN','STAFF','SYSTEM'))
     );
 
     ALTER TABLE retail_customers ALTER COLUMN email DROP NOT NULL;
@@ -393,19 +393,24 @@ async function ensureCoryCoreSchema() {
     ON CONFLICT(customer_id,identity_id) DO NOTHING
   `);
 
+  // Platform owns Super Admin. Cory keeps only store-scoped operational roles.
+  await pool.query(`UPDATE retail_staff_users SET role='STORE_ADMIN',updated_at=NOW() WHERE role='SUPER_ADMIN'`);
+  await pool.query(`ALTER TABLE retail_staff_users DROP CONSTRAINT IF EXISTS retail_staff_users_role_check`);
+  await pool.query(`ALTER TABLE retail_staff_users ADD CONSTRAINT retail_staff_users_role_check CHECK (role IN ('STORE_ADMIN','STAFF','SYSTEM'))`);
+
   const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
   if (adminEmail) {
     await pool.query(`
       INSERT INTO retail_staff_users(email,display_name,role,location_id,active,mfa_required)
-      VALUES($1,$2,'SUPER_ADMIN',$3,TRUE,TRUE)
+      VALUES($1,$2,'STORE_ADMIN',$3,TRUE,TRUE)
       ON CONFLICT(email) DO UPDATE SET
-        role='SUPER_ADMIN',active=TRUE,mfa_required=TRUE,updated_at=NOW()
-    `, [adminEmail, process.env.SUPER_ADMIN_NAME || 'Super Admin', locationId]);
+        role='STORE_ADMIN',active=TRUE,mfa_required=TRUE,updated_at=NOW()
+    `, [adminEmail, process.env.STORE_ADMIN_NAME || 'Store Admin', locationId]);
   }
 
   const integrationRows = [
     ['WEB', true, 'OK', 'Core website adapter enabled'],
-    ['EMAIL', Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM), process.env.RESEND_API_KEY && process.env.EMAIL_FROM ? 'OK' : 'NOT_CONFIGURED', 'Transactional email via Resend'],
+    ['EMAIL', Boolean(process.env.ARKON_PLATFORM_URL && process.env.ARKON_PLATFORM_SERVICE_KEY && process.env.CORY_RUNTIME_KEY), process.env.ARKON_PLATFORM_URL && process.env.ARKON_PLATFORM_SERVICE_KEY && process.env.CORY_RUNTIME_KEY ? 'OK' : 'NOT_CONFIGURED', 'Transactional email routed through ARKON Platform'],
     ['VOICE', false, 'NOT_CONFIGURED', 'Voice adapter ready; provider not configured'],
     ['SMS', false, 'BLOCKED', 'Provider must explicitly permit US cannabis messaging and expose inbound API/webhook'],
     ['WHATSAPP', false, 'BLOCKED', 'Disabled by current WhatsApp Business policy for recreational drug transaction facilitation'],
