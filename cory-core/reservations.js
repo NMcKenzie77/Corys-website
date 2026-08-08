@@ -9,13 +9,13 @@ const {
   loadVariantsForUpdate,
   releaseOrderHolds
 } = require('./inventory');
-const { pickupPlan } = require('./scheduling');
+const { pickupPlan, sameStoreDay } = require('./scheduling');
 
 const TRANSITIONS = {
   NEW: ['NEEDS_CLARIFICATION','CONFIRMED','CANCELLED','REJECTED'],
   NEEDS_CLARIFICATION: ['CONFIRMED','CANCELLED','REJECTED'],
   CONFIRMED: ['PICKING','CANCELLED','EXPIRED'],
-  PICKING: ['READY','CANCELLED'],
+  PICKING: ['READY','CANCELLED','EXPIRED'],
   READY: ['COMPLETED','CANCELLED','EXPIRED'],
   COMPLETED: [],
   CANCELLED: [],
@@ -34,6 +34,21 @@ function reservationCode() {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
+}
+
+function normalizeRequestedItems(items) {
+  if (!Array.isArray(items) || !items.length) throw httpError('Choose at least one product.');
+  if (items.length > 50) throw httpError('A reservation may contain at most 50 line items.');
+  const seen = new Set();
+  return items.map((item) => {
+    const variantId = Number(item && item.variantId);
+    const quantity = Number(item && item.quantity);
+    if (!Number.isInteger(variantId) || variantId < 1) throw httpError('Invalid product selection.');
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) throw httpError('Reservation quantity must be a whole number from 1 to 99.');
+    if (seen.has(variantId)) throw httpError('Each package may appear only once in a reservation. Change its quantity instead.', 400, 'DUPLICATE_VARIANT');
+    seen.add(variantId);
+    return { variantId, quantity };
+  });
 }
 
 function safeRequestMetadata(meta) {
@@ -79,8 +94,9 @@ async function createWebsiteReservation(body, meta = {}) {
   if (!bool(body.ageConfirmed)) throw httpError('You must confirm that you are 21 or older.');
   if (!bool(body.privacyAccepted)) throw httpError('Review and accept the Privacy Notice and Terms.');
   if (!text(body.email, 200) || !text(body.phone, 80)) throw httpError('Website pickup requires both email and phone contact information.');
-  const items = Array.isArray(body.items) ? body.items.slice(0, 50) : [];
+  const items = Array.isArray(body.items) ? body.items : [];
   if (!items.length) throw httpError('Choose at least one product.');
+  if (items.length > 50) throw httpError('A reservation may contain at most 50 line items.');
 
   const eventId = text(meta.idempotencyKey || body.clientRequestId, 200) || crypto.randomUUID();
   const ingress = await recordIngress({ eventId, body, meta });
@@ -132,15 +148,14 @@ async function createWebsiteReservation(body, meta = {}) {
         })
       ]);
 
-      const requested = items.map((item) => ({
-        variantId: Number(item.variantId),
-        quantity: Math.max(1, Math.min(99, Number(item.quantity) || 0))
-      }));
-      if (requested.some((item) => !Number.isInteger(item.variantId) || item.variantId < 1)) throw httpError('Invalid product selection.');
+      const requested = normalizeRequestedItems(items);
 
       const resolved = await loadVariantsForUpdate(client, location.id, requested);
       const total = resolved.reduce((sum, item) => sum + item.lineTotal, 0);
       const plan = pickupPlan(body);
+      if (plan.clarificationReason === 'SAME_DAY_ONLY') {
+        throw httpError('Scheduled pickup must be for today. Choose a time later today or select ASAP.', 400, 'SAME_DAY_ONLY');
+      }
       const code = reservationCode();
       const order = await client.query(`
         INSERT INTO retail_orders(
@@ -298,6 +313,7 @@ async function confirmExistingReservation(client, order, body, actorRef) {
   const isAsap = text(body.pickupWindow || order.pickup_window, 100).toUpperCase() === 'ASAP';
   let pickupAt = body.pickupAt ? new Date(body.pickupAt) : (order.pickup_window_start ? new Date(order.pickup_window_start) : null);
   if (!isAsap && (!pickupAt || Number.isNaN(pickupAt.getTime()))) throw httpError('An exact scheduled pickup time is required before confirmation.');
+  if (!isAsap && pickupAt && !sameStoreDay(pickupAt, new Date())) throw httpError('Scheduled pickup must be for today.', 400, 'SAME_DAY_ONLY');
   if (pickupAt && pickupAt.getTime() < Date.now() - 5 * 60 * 1000) throw httpError('Pickup time must be in the future.');
   const expiresAt = isAsap ? new Date(Date.now() + 2 * 60 * 60 * 1000) : new Date(pickupAt.getTime() + 60 * 60 * 1000);
   await createHolds(client, {
@@ -416,6 +432,7 @@ async function transitionReservation(id, body, actorRef) {
 module.exports = {
   TRANSITIONS,
   createWebsiteReservation,
+  normalizeRequestedItems,
   pickupPlan,
   transitionReservation
 };
