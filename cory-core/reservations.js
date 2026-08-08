@@ -296,6 +296,221 @@ async function createWebsiteReservation(body, meta = {}) {
   }
 }
 
+async function createEmailReservationFromProposal(input) {
+  if (!input.ageAttested) throw httpError('You must confirm that you are 21 or older.');
+  const idempotencyKey = `message:${Number(input.messageId)}`;
+
+  return withTransaction(async (client) => {
+    const prior = await client.query(`
+      SELECT result_json FROM retail_idempotency_keys
+      WHERE scope='EMAIL_RESERVATION' AND idempotency_key=$1
+      LIMIT 1
+    `, [idempotencyKey]);
+    if (prior.rowCount) return { ...prior.rows[0].result_json, duplicate: true };
+
+    const conversationResult = await client.query(`
+      SELECT * FROM retail_conversations
+      WHERE id=$1
+      FOR UPDATE
+    `, [input.conversationId]);
+    if (!conversationResult.rowCount) throw httpError('Email conversation not found.', 404);
+    const conversation = conversationResult.rows[0];
+    if (Number(conversation.customer_id) !== Number(input.customerId)) {
+      throw httpError('Email customer identity changed. Staff review is required.', 409, 'IDENTITY_CONFLICT');
+    }
+
+    const pending = conversation.context_json && conversation.context_json.pendingEmailProposal;
+    if (!pending || pending.type !== 'CREATE_RESERVATION') {
+      throw httpError('There is no exact pending email basket to confirm.', 409, 'MISSING_PROPOSAL');
+    }
+    if (!pending.ageAttested && !input.ageAttested) {
+      throw httpError('You must confirm that you are 21 or older.');
+    }
+
+    const incoming = await client.query(`
+      SELECT m.*,e.trace_id,e.id AS event_id
+      FROM retail_messages m
+      LEFT JOIN retail_channel_events e ON e.id=m.channel_event_id
+      WHERE m.id=$1 AND m.conversation_id=$2 AND m.direction='INBOUND' AND m.channel='EMAIL'
+      FOR UPDATE OF m
+    `, [input.messageId, input.conversationId]);
+    if (!incoming.rowCount) throw httpError('Confirmation email was not found.', 409, 'MISSING_CONFIRMATION_MESSAGE');
+
+    const identity = await client.query(`
+      SELECT i.*
+      FROM retail_channel_identities i
+      JOIN retail_customer_identity_links l ON l.identity_id=i.id
+      WHERE i.id=$1 AND i.identity_kind='EMAIL' AND l.customer_id=$2 AND l.status='ACTIVE'
+      LIMIT 1
+    `, [input.identityId, input.customerId]);
+    if (!identity.rowCount) throw httpError('Email identity is not safely linked to this customer.', 409, 'IDENTITY_CONFLICT');
+
+    const customer = await client.query('SELECT * FROM retail_customers WHERE id=$1 FOR UPDATE', [input.customerId]);
+    if (!customer.rowCount || !text(customer.rows[0].phone, 80)) {
+      throw httpError('A phone contact is required before confirming an email reservation.', 409, 'PROFILE_INCOMPLETE');
+    }
+
+    const requested = normalizeRequestedItems(pending.items);
+    const resolved = await loadVariantsForUpdate(client, conversation.location_id, requested);
+    const plan = pickupPlan({
+      pickupWindow: pending.pickupWindow || 'ASAP',
+      pickupAt: pending.pickupAt || null
+    });
+    if (plan.status !== 'CONFIRMED') {
+      throw httpError('An exact same-day pickup time is required before inventory can be held.', 409, 'PICKUP_TIME_REQUIRED');
+    }
+
+    const total = resolved.reduce((sum, item) => sum + item.lineTotal, 0);
+    const code = reservationCode();
+    const orderResult = await client.query(`
+      INSERT INTO retail_orders(
+        order_number,customer_id,status,subtotal_cents,total_cents,pickup_window,customer_notes,
+        age_confirmed_at,kind,reservation_code,source_channel,location_id,pickup_window_start,
+        pickup_window_end,expires_at,eligibility_attested_at,origin_conversation_id
+      ) VALUES(
+        $1,$2,'CONFIRMED',$3,$3,$4,'',NOW(),'PICKUP_RESERVATION',$1,'EMAIL',$5,$6,$7,$8,NOW(),$9
+      )
+      RETURNING *
+    `, [
+      code,
+      input.customerId,
+      total,
+      plan.label,
+      conversation.location_id,
+      plan.pickupAt,
+      plan.pickupAt ? new Date(plan.pickupAt.getTime() + 30 * 60 * 1000) : null,
+      plan.holdExpiresAt,
+      conversation.id
+    ]);
+    const order = orderResult.rows[0];
+
+    for (const item of resolved) {
+      await client.query(`
+        INSERT INTO retail_order_items(
+          order_id,product_id,variant_id,product_name,variant_label,sku,quantity,unit_price_cents,line_total_cents
+        ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `, [
+        order.id,
+        item.row.product_id,
+        item.row.id,
+        item.row.product_name,
+        item.row.label,
+        item.row.sku,
+        item.quantity,
+        item.unitPrice,
+        item.lineTotal
+      ]);
+    }
+
+    await createHolds(client, {
+      locationId: conversation.location_id,
+      orderId: order.id,
+      items: resolved,
+      expiresAt: plan.holdExpiresAt,
+      sourceMessageId: incoming.rows[0].id,
+      idempotencyKey,
+      actorType: 'CUSTOMER',
+      actorRef: `customer:${input.customerId}`
+    });
+    await client.query(`
+      INSERT INTO retail_picking_tasks(order_id,location_id,status)
+      VALUES($1,$2,'OPEN') ON CONFLICT(order_id) DO NOTHING
+    `, [order.id, conversation.location_id]);
+
+    await client.query(`
+      INSERT INTO retail_conversation_orders(conversation_id,order_id,relationship)
+      VALUES($1,$2,'CREATE')
+      ON CONFLICT(conversation_id,order_id,relationship) DO NOTHING
+    `, [conversation.id, order.id]);
+    await client.query(`
+      INSERT INTO retail_order_history(order_id,status,note,changed_by)
+      VALUES($1,'CONFIRMED','Email pickup reservation explicitly confirmed by customer','customer')
+    `, [order.id]);
+
+    await client.query(`
+      INSERT INTO retail_consents(customer_id,identity_id,channel,purpose,status,source,evidence_ref,policy_version,granted_at)
+      VALUES($1,$2,'EMAIL','TRANSACTIONAL','GRANTED','email-reservation',$3,'2026-08-08',NOW())
+    `, [input.customerId, input.identityId, `message:${input.messageId}`]);
+
+    const confirmationText = `Pickup reservation ${code} confirmed. Your items are reserved for pickup. Bring a valid government-issued photo ID. Payment and final sale happen inside the store.`;
+    await client.query(`
+      INSERT INTO retail_messages(
+        conversation_id,channel,direction,normalized_body,reply_to_message_id,intent,entities_json,confidence
+      ) VALUES($1,'EMAIL','OUTBOUND',$2,$3,'CREATE_RESERVATION',$4::jsonb,1.0)
+    `, [
+      conversation.id,
+      confirmationText,
+      incoming.rows[0].id,
+      JSON.stringify({ reservationCode: code, status: 'CONFIRMED', automated: true })
+    ]);
+
+    await client.query(`
+      INSERT INTO retail_outbox(
+        conversation_id,order_id,channel,recipient_identity_id,event_type,payload,idempotency_key
+      ) VALUES($1,$2,'EMAIL',$3,'RESERVATION_CONFIRMED',$4::jsonb,$5)
+      ON CONFLICT(idempotency_key) DO NOTHING
+    `, [
+      conversation.id,
+      order.id,
+      input.identityId,
+      JSON.stringify({
+        to: identity.rows[0].address_normalized,
+        reservationCode: code,
+        pickupWindow: plan.label,
+        status: 'CONFIRMED',
+        holdExpiresAt: plan.holdExpiresAt.toISOString()
+      }),
+      `${idempotencyKey}:confirmation-email`
+    ]);
+
+    await client.query(`
+      UPDATE retail_conversations SET
+        state='OPEN',ai_paused_at=NULL,
+        context_json=(context_json - 'pendingEmailProposal') || $1::jsonb,
+        last_activity_at=NOW(),updated_at=NOW()
+      WHERE id=$2
+    `, [JSON.stringify({ lastReservationCode: code }), conversation.id]);
+    await client.query(`
+      UPDATE retail_escalations SET state='RESOLVED',resolved_at=NOW()
+      WHERE conversation_id=$1 AND reason='EMAIL_RESERVATION_REVIEW' AND state IN ('OPEN','CLAIMED')
+    `, [conversation.id]);
+    if (incoming.rows[0].event_id) {
+      await client.query(`
+        UPDATE retail_channel_events SET status='PROCESSED',processed_at=NOW()
+        WHERE id=$1
+      `, [incoming.rows[0].event_id]);
+    }
+
+    const response = {
+      ok: true,
+      reservationCode: code,
+      orderNumber: code,
+      status: 'CONFIRMED',
+      pickupWindow: plan.label,
+      holdExpiresAt: plan.holdExpiresAt.toISOString(),
+      message: 'Pickup reservation confirmed. Payment and final sale happen in the store.'
+    };
+
+    await client.query(`
+      INSERT INTO retail_audit_events(
+        trace_id,actor_type,actor_ref,action,entity_type,entity_id,after_json,reference,policy_version
+      ) VALUES($1,'CUSTOMER',$2,'RESERVATION_CREATED','RESERVATION',$3,$4::jsonb,$5,'email-confirm-v1')
+    `, [
+      incoming.rows[0].trace_id || null,
+      `customer:${input.customerId}`,
+      String(order.id),
+      JSON.stringify({ status: 'CONFIRMED', sourceChannel: 'EMAIL', explicitConfirmation: true, age21Attested: true }),
+      `message:${input.messageId}`
+    ]);
+    await client.query(`
+      INSERT INTO retail_idempotency_keys(scope,idempotency_key,action,entity_type,entity_id,result_json,expires_at)
+      VALUES('EMAIL_RESERVATION',$1,'CREATE_RESERVATION','RESERVATION',$2,$3::jsonb,NOW()+INTERVAL '30 days')
+    `, [idempotencyKey, order.id, JSON.stringify(response)]);
+
+    return response;
+  });
+}
+
 async function legacyRestoreInventory(client, orderId) {
   const order = await client.query('SELECT inventory_restored FROM retail_orders WHERE id=$1 FOR UPDATE', [orderId]);
   if (!order.rowCount || order.rows[0].inventory_restored) return;
@@ -431,6 +646,7 @@ async function transitionReservation(id, body, actorRef) {
 
 module.exports = {
   TRANSITIONS,
+  createEmailReservationFromProposal,
   createWebsiteReservation,
   normalizeRequestedItems,
   pickupPlan,

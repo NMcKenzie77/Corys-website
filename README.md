@@ -15,7 +15,8 @@ The application is a modular Node/Express + PostgreSQL monolith. The `cory-core/
 - `channels.js` — durable notification outbox and channel capability gates.
 - `adapter-contract.js` — replaceable inbound/outbound channel contract.
 - `maps.js` — Google Places autocomplete and traffic-aware Google Routes estimates without persisting the customer's origin.
-- `api.js` — public reservation/drive-time APIs plus staff operations and Platform-owned Super Admin access.\n- `platform.js` — one-time ARKON Platform Super Admin handoff exchange; Cory does not own Super Admin credentials.\n- `inbound.js` — Platform-authenticated email ingress, idempotency, redaction, identity/thread correlation, and staff handoff.
+- `api.js` — public reservation/drive-time APIs plus staff operations and Platform-owned Super Admin access.\n- `platform.js` — one-time ARKON Platform Super Admin handoff exchange; Cory does not own Super Admin credentials.\n- `inbound.js` — Platform-authenticated email ingress, idempotency, redaction, and identity/thread correlation.
+- `email-agent.js` — bounded Platform AI interpretation plus deterministic clarification, explicit confirmation, 21+ attestation, and safe human fallback. AI never writes inventory or reservations.
 
 ## Canonical retail model
 
@@ -40,7 +41,7 @@ Creating, releasing, consuming, receiving, damaging, or adjusting inventory writ
 ## Omnichannel status
 
 - Website: enabled.
-- Email: outbound is routed through ARKON Platform, and inbound Platform email events enter Cory through `/api/internal/provider-events/email`. Inbound email is deduplicated, redacted, correlated, and sent to the unified human-review queue; Cory does not auto-reserve ambiguous free text.
+- Email: inbound Platform events enter `/api/internal/provider-events/email`; outbound replies stay on ARKON Platform. Known, unambiguous customers can describe a basket in free text. Platform AI may only return a typed interpretation against Cory's live catalog. Cory asks targeted clarification, sends an exact basket summary, requires explicit `CONFIRM` plus a deterministic 21+ attestation, then rechecks stock under database locks before creating the hold. Unknown/ambiguous identities, low-confidence interpretations, sensitive data, and non-create requests go to staff.
 - Voice: adapter boundary is ready; provider configuration is not enabled yet.
 - SMS: policy-gated off until a US cannabis-permitted provider gives written approval and documented real-time inbound API/webhook support.
 - WhatsApp: policy-gated off because current WhatsApp Business policy prohibits facilitating recreational-drug transactions.
@@ -106,7 +107,7 @@ Do not treat this branch as production-ready until these gates are completed:
 1. PostgreSQL migration/restore test against a copy of production data.
 2. Platform Super Admin MFA enforcement plus individual Store Admin/staff login flow.
 3. Concurrency tests for last-unit holds, cancel/expire, and legacy-order migration.
-4. Bind the Platform inbound EMAIL route to Cory `/api/internal/provider-events/email`, then complete customer-confirmed email intent automation and voice provider configuration.
+4. Bind the Platform inbound EMAIL route to Cory `/api/internal/provider-events/email`, then complete first-time email-customer onboarding and automated email change/cancel/status flows. Voice provider configuration remains a separate gate.
 5. Written/provider validation before any cannabis SMS integration; WhatsApp stays disabled under current policy.
 6. Google Maps billing/API restrictions and production key configuration.
 7. Backup/PITR, monitoring, retention, and alerting verification in the hosting environment.

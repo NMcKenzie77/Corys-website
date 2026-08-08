@@ -1,7 +1,9 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { classifyIdentityMatches, normalizeEmail, normalizePhone } = require('../cory-core/identity');\nconst { containsSensitiveData, extractReservationCode, inferIntent, normalizeInboundEmail, redactSensitiveText } = require('../cory-core/inbound');
+const { classifyIdentityMatches, normalizeEmail, normalizePhone } = require('../cory-core/identity');
+const { containsSensitiveData, extractReservationCode, inferIntent, normalizeInboundEmail, redactSensitiveText } = require('../cory-core/inbound');
+const { explicitAgeAttestation, explicitConfirmation, parseExplicitStorePickupTime } = require('../cory-core/email-agent');
 const { EXPIRABLE_STATUSES } = require('../cory-core/inventory');
 const { waypoint } = require('../cory-core/maps');
 const { TRANSITIONS, normalizeRequestedItems } = require('../cory-core/reservations');
@@ -28,6 +30,14 @@ assert.equal(extractReservationCode(emailEvent.bodyText), 'CRY-20260808-A1B2C3')
 assert.equal(inferIntent(emailEvent.bodyText, 'CRY-20260808-A1B2C3'), 'CHANGE_RESERVATION');
 assert.equal(containsSensitiveData('card 4242 4242 4242 4242'), true);
 assert.match(redactSensitiveText('card 4242 4242 4242 4242'), /PAYMENT DATA REDACTED/);
+
+assert.equal(explicitConfirmation('CONFIRM'), true);
+assert.equal(explicitConfirmation('I AM 21+ AND CONFIRM'), true);
+assert.equal(explicitConfirmation('sounds good'), false);
+assert.equal(explicitAgeAttestation('I am 21+'), true);
+assert.equal(explicitAgeAttestation('I am not 21+'), false);
+assert.equal(parseExplicitStorePickupTime('Pickup at 10:30 AM', now).toISOString(), '2026-08-08T17:30:00.000Z');
+assert.equal(parseExplicitStorePickupTime('pickup later', now), null);
 
 const asap = pickupPlan({ pickupWindow: 'ASAP' }, now);
 assert.equal(asap.status, 'CONFIRMED');
