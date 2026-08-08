@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { classifyIdentityMatches, normalizeEmail, normalizePhone } = require('../cory-core/identity');
+const { classifyIdentityMatches, normalizeEmail, normalizePhone } = require('../cory-core/identity');\nconst { containsSensitiveData, extractReservationCode, inferIntent, normalizeInboundEmail, redactSensitiveText } = require('../cory-core/inbound');
 const { EXPIRABLE_STATUSES } = require('../cory-core/inventory');
 const { waypoint } = require('../cory-core/maps');
 const { TRANSITIONS, normalizeRequestedItems } = require('../cory-core/reservations');
@@ -12,6 +12,22 @@ const now = new Date('2026-08-08T16:00:00.000Z');
 assert.equal(normalizeEmail('  Customer@Example.COM '), 'customer@example.com');
 assert.equal(normalizePhone('(206) 555-0199'), '+12065550199');
 assert.equal(normalizePhone('+1 206 555 0199'), '+12065550199');
+
+const emailEvent = normalizeInboundEmail({
+  provider: 'resend',
+  messageId: 'email_123',
+  threadId: 'thread_456',
+  from: 'Customer <customer@example.com>',
+  subject: 'Change CRY-20260808-A1B2C3',
+  text: 'Please remove one item from CRY-20260808-A1B2C3.'
+});
+assert.equal(emailEvent.from, 'customer@example.com');
+assert.equal(emailEvent.providerEventId, 'email_123');
+assert.equal(emailEvent.providerThreadId, 'thread_456');
+assert.equal(extractReservationCode(emailEvent.bodyText), 'CRY-20260808-A1B2C3');
+assert.equal(inferIntent(emailEvent.bodyText, 'CRY-20260808-A1B2C3'), 'CHANGE_RESERVATION');
+assert.equal(containsSensitiveData('card 4242 4242 4242 4242'), true);
+assert.match(redactSensitiveText('card 4242 4242 4242 4242'), /PAYMENT DATA REDACTED/);
 
 const asap = pickupPlan({ pickupWindow: 'ASAP' }, now);
 assert.equal(asap.status, 'CONFIRMED');
