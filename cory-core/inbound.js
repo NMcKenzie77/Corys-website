@@ -334,11 +334,11 @@ async function receiveEmail(email) {
     } else if (identity.ambiguous) {
       reason = 'IDENTITY_AMBIGUOUS';
       priority = 'HIGH';
-    } else if (!identity.customerId) {
-      reason = 'UNRESOLVED_EMAIL_IDENTITY';
     } else if (identityMismatch) {
       reason = 'RESERVATION_IDENTITY_MISMATCH';
       priority = 'HIGH';
+    } else if (!identity.customerId) {
+      reason = 'UNRESOLVED_EMAIL_IDENTITY';
     }
 
     await client.query(`
