@@ -144,6 +144,10 @@ async function adjustInventory(options) {
   if (!Number.isInteger(quantityDelta) || quantityDelta === 0) throw httpError('Inventory adjustment must be a non-zero whole number.');
   const reason = text(options.reason, 1000);
   if (!reason) throw httpError('Inventory adjustments require a reason.');
+  const requestedType = text(options.eventType || 'ADJUSTMENT', 30).toUpperCase();
+  if (!['RECEIVE','ADJUSTMENT','DAMAGE'].includes(requestedType)) throw httpError('Inventory event type must be RECEIVE, ADJUSTMENT, or DAMAGE.');
+  if (requestedType === 'RECEIVE' && quantityDelta < 1) throw httpError('Receiving inventory must increase on-hand quantity.');
+  if (requestedType === 'DAMAGE' && quantityDelta > -1) throw httpError('Damage inventory events must reduce on-hand quantity.');
 
   return withTransaction(async (client) => {
     const variant = await client.query('SELECT * FROM product_variants WHERE id=$1 FOR UPDATE', [options.variantId]);
@@ -152,7 +156,7 @@ async function adjustInventory(options) {
     if (nextQty < 0) throw httpError('Adjustment would make on-hand inventory negative.', 409);
     await client.query('UPDATE product_variants SET inventory_qty=$1,updated_at=NOW() WHERE id=$2', [nextQty, options.variantId]);
     const available = await availableAfterHold(client, options.locationId, options.variantId);
-    const eventType = quantityDelta > 0 && options.eventType === 'RECEIVE' ? 'RECEIVE' : (options.eventType || 'ADJUSTMENT');
+    const eventType = requestedType;
     await client.query(`
       INSERT INTO retail_inventory_ledger(
         location_id,variant_id,event_type,quantity_delta,quantity_after,actor_type,actor_ref,reason,reference
