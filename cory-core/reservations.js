@@ -9,6 +9,7 @@ const {
   loadVariantsForUpdate,
   releaseOrderHolds
 } = require('./inventory');
+const { pickupPlan } = require('./scheduling');
 
 const TRANSITIONS = {
   NEW: ['NEEDS_CLARIFICATION','CONFIRMED','CANCELLED','REJECTED'],
@@ -40,36 +41,6 @@ function safeRequestMetadata(meta) {
     clientIpHash: meta.ip ? sha256(meta.ip).slice(0, 24) : '',
     userAgent: text(meta.userAgent, 300),
     sourcePath: text(meta.sourcePath || '/pickup', 200)
-  };
-}
-
-function pickupPlan(body) {
-  const label = text(body.pickupWindow || 'ASAP', 100) || 'ASAP';
-  const isAsap = label.toUpperCase() === 'ASAP';
-  if (isAsap) {
-    return {
-      label,
-      status: 'CONFIRMED',
-      pickupAt: null,
-      holdExpiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000)
-    };
-  }
-
-  const parsed = body.pickupAt ? new Date(body.pickupAt) : null;
-  if (!parsed || Number.isNaN(parsed.getTime()) || parsed.getTime() < Date.now() - 5 * 60 * 1000) {
-    return {
-      label,
-      status: 'NEEDS_CLARIFICATION',
-      pickupAt: null,
-      holdExpiresAt: null
-    };
-  }
-
-  return {
-    label,
-    status: 'CONFIRMED',
-    pickupAt: parsed,
-    holdExpiresAt: new Date(parsed.getTime() + 60 * 60 * 1000)
   };
 }
 
