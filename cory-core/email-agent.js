@@ -181,6 +181,12 @@ async function queueReply(options) {
     ]);
 
     if (options.automated) {
+      if (options.sourceMessageId) {
+        await client.query(`
+          UPDATE retail_channel_events SET status='PROCESSED',processed_at=NOW()
+          WHERE id=(SELECT channel_event_id FROM retail_messages WHERE id=$1)
+        `, [options.sourceMessageId]);
+      }
       await client.query(`
         UPDATE retail_escalations SET state='RESOLVED',resolved_at=NOW()
         WHERE conversation_id=$1 AND reason='EMAIL_RESERVATION_REVIEW' AND state IN ('OPEN','CLAIMED')
