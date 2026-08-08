@@ -19,7 +19,7 @@ function explicitConfirmation(value) {
 function explicitAgeAttestation(value) {
   const raw = String(value || '');
   if (/\b(?:not|under)\s+(?:yet\s+)?21\b/i.test(raw)) return false;
-  return /\b(?:I\s+AM\s+)?21\s*(?:\+|OR\s+OLDER|YEARS?\s+OLD)\b/i.test(raw);
+  return /\b(?:I\s+AM\s+)?21\s*(?:\+|OR\s+OLDER\b|YEARS?\s+OLD\b)/i.test(raw);
 }
 
 function zonedParts(date) {
