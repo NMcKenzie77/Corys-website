@@ -11,15 +11,17 @@ const {
   requireAdmin
 } = require('./auth');
 
-const ORDER_STATUSES = ['NEW','CONFIRMED','PICKING','READY','COMPLETED','CANCELLED','EXPIRED'];
+const ORDER_STATUSES = ['NEW','NEEDS_CLARIFICATION','CONFIRMED','PICKING','READY','COMPLETED','CANCELLED','EXPIRED','REJECTED'];
 const ORDER_TRANSITIONS = {
-  NEW: ['NEW','CONFIRMED','CANCELLED'],
-  CONFIRMED: ['CONFIRMED','PICKING','CANCELLED'],
+  NEW: ['NEW','NEEDS_CLARIFICATION','CONFIRMED','CANCELLED','REJECTED'],
+  NEEDS_CLARIFICATION: ['NEEDS_CLARIFICATION','CONFIRMED','CANCELLED','REJECTED'],
+  CONFIRMED: ['CONFIRMED','PICKING','CANCELLED','EXPIRED'],
   PICKING: ['PICKING','READY','CANCELLED'],
   READY: ['READY','COMPLETED','CANCELLED','EXPIRED'],
   COMPLETED: ['COMPLETED'],
   CANCELLED: ['CANCELLED'],
-  EXPIRED: ['EXPIRED']
+  EXPIRED: ['EXPIRED'],
+  REJECTED: ['REJECTED']
 };
 const CAMPAIGN_SEGMENTS = ['ALL_SUBSCRIBERS','CUSTOMERS','LAPSED_60_DAYS','CATEGORY_BUYERS'];
 const AUTOMATION_RULES = [
@@ -458,7 +460,7 @@ async function runRule(ruleKey) {
       const existing = await pool.query('SELECT 1 FROM retail_automation_alerts WHERE alert_key=$1', [`digest:${dateKey}`]);
       if (hour >= targetHour && !existing.rowCount) {
         const [orders, alerts, stock] = await Promise.all([
-          pool.query(`SELECT COUNT(*)::int count FROM retail_orders WHERE status IN ('NEW','CONFIRMED','PICKING','READY')`),
+          pool.query(`SELECT COUNT(*)::int count FROM retail_orders WHERE status IN ('NEW','NEEDS_CLARIFICATION','CONFIRMED','PICKING','READY')`),
           pool.query(`SELECT COUNT(*)::int count FROM retail_automation_alerts WHERE status='OPEN'`),
           pool.query(`SELECT COUNT(*)::int count FROM product_variants v JOIN products p ON p.id=v.product_id WHERE p.active=TRUE AND v.active=TRUE AND v.inventory_qty<=5`)
         ]);
@@ -576,7 +578,7 @@ function registerRetailApi(app) {
       const result = await pool.query(`SELECT
         (SELECT COUNT(*)::int FROM products WHERE active=TRUE) active_products,
         (SELECT COALESCE(SUM(inventory_qty),0)::int FROM product_variants WHERE active=TRUE) units_available,
-        (SELECT COUNT(*)::int FROM retail_orders WHERE status IN ('NEW','CONFIRMED','PICKING','READY')) open_orders,
+        (SELECT COUNT(*)::int FROM retail_orders WHERE status IN ('NEW','NEEDS_CLARIFICATION','CONFIRMED','PICKING','READY')) open_orders,
         (SELECT COUNT(*)::int FROM retail_customers) customers,
         (SELECT COALESCE(SUM(total_cents),0)::bigint FROM retail_orders WHERE status='COMPLETED' AND completed_at>=NOW()-INTERVAL '30 days') completed_30d_cents,
         (SELECT COUNT(*)::int FROM retail_automation_alerts WHERE status='OPEN') open_alerts`);
