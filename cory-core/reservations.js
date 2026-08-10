@@ -264,9 +264,17 @@ async function createWebsiteReservation(body, meta = {}) {
         pickupWindow: plan.label,
         holdExpiresAt: plan.holdExpiresAt ? plan.holdExpiresAt.toISOString() : null,
         needsClarification: plan.status === 'NEEDS_CLARIFICATION',
+        transactionType: 'PICKUP_RESERVATION_REQUEST',
+        saleCompleted: false,
+        ownershipTransferred: false,
+        paymentAcceptedOnline: false,
+        paymentDue: 'IN_STORE',
+        idVerification: 'IN_STORE_REQUIRED',
+        staffReviewRequired: true,
+        customerShouldWaitForReadyNotice: true,
         message: plan.status === 'CONFIRMED'
-          ? 'Pickup reservation confirmed. Payment and final sale happen in the store.'
-          : 'Tell us your exact pickup time so we can place the inventory hold.'
+          ? 'Pickup request received and a temporary inventory hold was created. This is not a completed sale. Wait for the store ready notice, then bring valid ID and pay in store.'
+          : 'Pickup request received. No sale has occurred. Tell us your exact pickup time before inventory can be held.'
       };
 
       await client.query(`
