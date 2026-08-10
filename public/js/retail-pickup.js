@@ -194,7 +194,7 @@
     };
 
     submit.disabled = true;
-    status.textContent = 'Submitting pickup reservation…';
+    status.textContent = 'Submitting pickup request…';
     status.className = 'status';
 
     fetch('/api/retail/orders', {
@@ -204,18 +204,24 @@
     })
       .then(function (response) { return response.json().then(function (body) { return { ok: response.ok, body: body }; }); })
       .then(function (result) {
-        if (!result.ok || !result.body.ok) throw new Error(result.body.error || 'Reservation could not be submitted.');
+        if (!result.ok || !result.body.ok) throw new Error(result.body.error || 'Pickup request could not be submitted.');
+        if (result.body.transactionType !== 'PICKUP_RESERVATION_REQUEST' || result.body.saleCompleted !== false || result.body.paymentDue !== 'IN_STORE') {
+          throw new Error('The pickup request response did not preserve the required in-store-sale boundary.');
+        }
+        var code = esc(result.body.reservationCode || result.body.orderNumber);
+        var windowLabel = esc(result.body.pickupWindow);
         window.RetailCart.clear();
         render();
         form.reset();
         pendingReservationId = '';
         syncPickupTime();
         if (result.body.status === 'CONFIRMED') {
-          status.innerHTML = 'Reservation <strong>' + esc(result.body.reservationCode || result.body.orderNumber) + '</strong> is confirmed for <strong>' + esc(result.body.pickupWindow) + '</strong>. Your inventory hold is active. Bring valid ID and pay inside the store.';
+          status.innerHTML = '<strong>Pickup request ' + code + ' received.</strong> A temporary inventory hold is active for <strong>' + windowLabel + '</strong> while store staff reviews the request. This is not a completed cannabis sale. Wait for the ready notification, then bring valid ID and pay inside the store.';
         } else {
-          status.innerHTML = 'Reservation <strong>' + esc(result.body.reservationCode || result.body.orderNumber) + '</strong> was received. Store staff need one clarification before inventory can be held.';
+          status.innerHTML = '<strong>Pickup request ' + code + ' received.</strong> No sale has occurred and inventory is not yet held. Store staff need your exact pickup time before they can continue.';
         }
         status.className = 'status success';
+        status.focus();
       })
       .catch(function (error) {
         status.textContent = error.message;

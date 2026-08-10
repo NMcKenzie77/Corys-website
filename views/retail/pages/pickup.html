@@ -1,17 +1,17 @@
 <section class="menu-hero">
   <div class="wrap">
-    <p class="eyebrow">Pickup reservation</p>
-    <h1>Reserve now. Pay in store.</h1>
-    <p>No cannabis sale is completed on this website. Staff will confirm the reservation, verify your ID at pickup, and complete payment and product transfer inside the licensed store.</p>
+    <p class="eyebrow">Pickup reservation request</p>
+    <h1>Request pickup. Pay in store.</h1>
+    <p>Submitting this form asks the store to reserve selected products for pickup. It does not complete a cannabis sale, guarantee final availability, or accept payment. Wait for the store's ready notification before arriving.</p>
   </div>
 </section>
 
 <section class="section">
   <div class="wrap pickup-layout" data-pickup-app>
     <div class="panel">
-      <div class="section-heading"><div><p class="eyebrow">Your reservation</p><h2>Selected products</h2></div><a href="/menu">Continue browsing</a></div>
+      <div class="section-heading"><div><p class="eyebrow">Your pickup request</p><h2>Requested products</h2></div><a href="/menu">Continue browsing</a></div>
       <div data-pickup-items></div>
-      <div class="cart-total"><span>Estimated in-store total</span><strong data-pickup-total>$0.00</strong></div>
+      <div class="cart-total"><span>Estimated in-store amount</span><strong data-pickup-total>$0.00</strong></div>
       <p class="small">Final availability and price are confirmed by the store. Taxes and other lawful in-store charges may apply. No charge is made online.</p>
     </div>
 
@@ -49,8 +49,9 @@
       <label class="check"><input type="checkbox" name="privacyAccepted" value="true" required><span>I have reviewed and accept the <a href="/privacy" target="_blank" rel="noopener">Privacy Notice</a> and <a href="/terms" target="_blank" rel="noopener">Pickup Terms</a>.</span></label>
       <label class="check"><input type="checkbox" name="marketingConsent" value="true"><span>I am a Washington resident and agree to receive optional 21+ menu and store marketing emails. This is not required to reserve products, and I can unsubscribe at any time.</span></label>
 
-      <button class="button primary" type="submit" data-pickup-submit>Reserve for pickup</button>
-      <p class="status" data-pickup-status role="status"></p>
+      <div class="notice">By selecting “Submit pickup request,” you are requesting a temporary product reservation only. Store staff may accept, adjust, or decline the request. No sale, payment, ownership transfer, or guaranteed pickup is created online.</div>
+      <button class="button primary" type="submit" data-pickup-submit>Submit pickup request</button>
+      <div class="status" data-pickup-status role="status" aria-live="polite" tabindex="-1"></div>
     </form>
   </div>
 </section>

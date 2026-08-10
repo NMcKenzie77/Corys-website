@@ -73,6 +73,18 @@ requireText('views/retail/pages/pickup.html', 'entering this website did not ver
 requireText('cory-core/reservations.js', "if (!bool(body.ageConfirmed))", 'reservation API must reject missing 21+ attestation');
 requireText('views/retail/pages/pickup.html', 'name="privacyAccepted"', 'privacy acceptance is required');
 requireText('views/retail/pages/pickup.html', 'name="marketingConsent"', 'marketing consent must be separate and optional');
+requireText('views/retail/pages/pickup.html', 'Submit pickup request', 'submission must be labeled as a pickup request');
+requireText('views/retail/pages/pickup.html', 'No sale, payment, ownership transfer, or guaranteed pickup is created online.', 'pickup submission must state the legal boundary');
+requireText('public/js/retail-menu.js', 'Add to pickup request', 'menu actions must not look like online purchase buttons');
+requireText('public/js/retail-pickup.js', 'Pickup request ', 'confirmation must identify the submission as a request');
+requireText('public/js/retail-pickup.js', 'This is not a completed cannabis sale.', 'confirmation must state that no online sale occurred');
+requireText('public/js/retail-pickup.js', "result.body.transactionType !== 'PICKUP_RESERVATION_REQUEST'", 'browser must verify the API transaction type');
+requireText('public/js/retail-pickup.js', "result.body.saleCompleted !== false", 'browser must verify the API sale boundary');
+requireText('cory-core/reservations.js', "transactionType: 'PICKUP_RESERVATION_REQUEST'", 'API response must identify a reservation request');
+requireText('cory-core/reservations.js', 'saleCompleted: false', 'API response must state that no sale was completed');
+requireText('cory-core/reservations.js', "paymentDue: 'IN_STORE'", 'API response must keep payment in store');
+requireText('cory-core/reservations.js', "idVerification: 'IN_STORE_REQUIRED'", 'API response must keep ID verification in store');
+requireText('cory-core/reservations.js', 'customerShouldWaitForReadyNotice: true', 'API must tell the customer to wait for store readiness');
 ['address1', 'postalCode', 'cardNumber', 'paymentToken', 'deliveryAddress', 'shippingAddress'].forEach((field) => {
   if (pickup.includes(`name="${field}"`)) errors.push(`views/retail/pages/pickup.html: forbidden online sale/shipping field ${field}`);
 });

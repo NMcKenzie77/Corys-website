@@ -52,7 +52,7 @@
           : '<span class="old-price">' + window.RetailCart.money(variant.priceCents) + '</span><span class="price sale">' + window.RetailCart.money(price) + '</span>';
         var disabled = Number(variant.inventoryQty || 0) < 1;
         var stock = variant.status === 'LOW STOCK' ? 'LOW STOCK' : 'AVAILABLE';
-        return '<div class="package-row"><div><strong>' + esc(variant.label) + '</strong><small>' + esc(cannabinoids || 'See package label in store') + ' · <span class="stock-text ' + (stock === 'LOW STOCK' ? 'low-stock' : 'available') + '">' + stock + '</span></small></div><div>' + pricing + '<button class="button primary" type="button" data-add-product="' + Number(product.id) + '" data-add-variant="' + Number(variant.id) + '"' + (disabled ? ' disabled' : '') + '>' + (disabled ? 'Unavailable' : 'Add') + '</button></div></div>';
+        return '<div class="package-row"><div><strong>' + esc(variant.label) + '</strong><small>' + esc(cannabinoids || 'See package label in store') + ' · <span class="stock-text ' + (stock === 'LOW STOCK' ? 'low-stock' : 'available') + '">' + stock + '</span></small></div><div>' + pricing + '<button class="button primary" type="button" data-add-product="' + Number(product.id) + '" data-add-variant="' + Number(variant.id) + '"' + (disabled ? ' disabled' : '') + '>' + (disabled ? 'Unavailable' : 'Add to pickup request') + '</button></div></div>';
       }).join('');
       return '<article class="product-card"><div class="product-image">' + image + '</div><div class="product-body"><div class="product-meta">' + meta + '</div><div><h3>' + esc(product.name) + '</h3><p class="product-copy">' + esc(product.description || '') + '</p></div>' + variants + '</div></article>';
     }).join('');
@@ -75,8 +75,8 @@
       imageUrl: product.imageUrl,
       quantity: 1
     });
-    button.textContent = 'Added';
-    setTimeout(function () { button.textContent = 'Add'; }, 900);
+    button.textContent = 'Added to request';
+    setTimeout(function () { button.textContent = 'Add to pickup request'; }, 900);
   });
 
   search.addEventListener('input', render);
