@@ -26,6 +26,7 @@
       <nav>
         <button class="active" type="button" data-admin-nav="dashboard">Dashboard</button>
         <button type="button" data-admin-nav="products">Menu products</button>
+        <button type="button" data-admin-nav="inventory">Inventory</button>
         <button type="button" data-admin-nav="orders">Pickup orders</button>
         <button type="button" data-admin-nav="customers">Customers</button>
         <button type="button" data-admin-nav="campaigns">Campaigns</button>
@@ -54,8 +55,18 @@
       </section>
 
       <section data-admin-panel="products" hidden>
-        <div class="admin-actions"><div><p class="eyebrow">Live menu</p><h2>Products, packages, prices, and inventory</h2></div><button class="button dark" type="button" data-new-product>New product</button></div>
+        <div class="admin-actions"><div><p class="eyebrow">Live menu</p><h2>Products, packages, and prices</h2><p class="small">Use the Inventory screen for receiving, corrections, and damaged items.</p></div><button class="button dark" type="button" data-new-product hidden>New product</button></div>
         <div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Packages</th><th>Inventory</th><th>Advertising review</th><th>Status</th></tr></thead><tbody data-products-table></tbody></table></div>
+      </section>
+
+      <section data-admin-panel="inventory" hidden>
+        <div class="admin-actions inventory-heading"><div><p class="eyebrow">Stock control</p><h2>Add and update inventory</h2><p class="small">Receive stock, correct a physical count, or record damaged units. Active pickup holds are protected automatically.</p></div><div class="actions inventory-heading-actions"><button class="button dark" type="button" data-new-product hidden>Add product</button><button class="button secondary" type="button" data-refresh-inventory>Refresh</button></div></div>
+        <div class="inventory-toolbar">
+          <label class="field"><span>Search inventory</span><input type="search" placeholder="Product, SKU, brand, or package" data-inventory-search></label>
+          <label class="field"><span>Stock status</span><select data-inventory-status-filter><option value="">All inventory</option><option value="AVAILABLE">AVAILABLE</option><option value="LOW STOCK">LOW STOCK</option></select></label>
+        </div>
+        <div class="inventory-summary" data-inventory-summary></div>
+        <div class="table-wrap"><table><thead><tr><th>Product</th><th>SKU / package</th><th>On hand</th><th>Held</th><th>Available</th><th>Status</th><th>Action</th></tr></thead><tbody data-inventory-table></tbody></table></div>
       </section>
 
       <section data-admin-panel="orders" hidden>
@@ -116,6 +127,20 @@
     <label class="check"><input type="checkbox" name="featured"><span>Featured</span></label><label class="check"><input type="checkbox" name="active" checked><span>Visible on live menu</span></label>
     <div class="actions"><button class="button secondary" type="button" data-close-product>Cancel</button><button class="button dark" type="submit">Save product</button></div><p class="status" data-product-status></p>
     </form></div></div>
+
+  <div class="modal" data-inventory-modal hidden><div class="modal-card inventory-modal-card"><div class="modal-head"><div><p class="eyebrow">Inventory adjustment</p><h2 data-inventory-modal-title>Update inventory</h2></div><button class="close" type="button" data-close-inventory aria-label="Close">×</button></div>
+    <div class="inventory-counts" data-inventory-counts></div>
+    <form data-inventory-form><input type="hidden" name="variantId"><input type="hidden" name="currentOnHand">
+      <div class="form-grid">
+        <label class="field"><span>What are you doing?</span><select name="action" required><option value="RECEIVE">Receiving stock</option><option value="COUNT">Correcting the physical count</option><option value="DAMAGE">Recording damaged units</option></select></label>
+        <label class="field"><span data-inventory-quantity-label>Units received</span><input name="quantity" type="number" min="1" step="1" required></label>
+        <label class="field span-two"><span>Reason</span><textarea name="reason" rows="3" required maxlength="1000" placeholder="Example: Delivery received from vendor"></textarea></label>
+        <label class="field span-two"><span>Reference (optional)</span><input name="reference" maxlength="200" placeholder="Invoice, manifest, or internal reference"></label>
+      </div>
+      <div class="notice" data-inventory-protection>Pickup holds cannot be removed or reduced by an inventory adjustment.</div>
+      <div class="actions"><button class="button secondary" type="button" data-close-inventory>Cancel</button><button class="button dark" type="submit">Save inventory update</button></div><p class="status" data-inventory-status></p>
+    </form>
+  </div></div>
 
   <div class="modal" data-order-modal hidden><div class="modal-card"><div class="modal-head"><div><p class="eyebrow">Pickup order</p><h2 data-order-modal-title>Order</h2></div><button class="close" type="button" data-close-order aria-label="Close">×</button></div><div data-order-detail></div>
     <form data-order-form><input type="hidden" name="orderId"><div class="form-grid"><label class="field"><span>Next status</span><select name="status" required><option>NEW</option><option>CONFIRMED</option><option>PICKING</option><option>READY</option><option>COMPLETED</option><option>CANCELLED</option><option>EXPIRED</option></select></label><label class="field"><span>In-store payment provider</span><input name="paymentProvider" placeholder="Cash, Safe Harbor, POS provider..."></label><label class="field"><span>POS receipt number</span><input name="posReceiptNumber"></label><label class="field"><span>Status note</span><input name="note"></label><label class="field span-two"><span>Internal notes</span><textarea name="internalNotes" rows="3"></textarea></label></div>

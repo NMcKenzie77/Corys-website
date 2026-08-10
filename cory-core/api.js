@@ -2,7 +2,7 @@
 
 const { pool } = require('../db');
 const { requireAdmin } = require('../auth');
-const { adjustInventory } = require('./inventory');
+const { adjustInventory, stockStatus } = require('./inventory');
 const { channelCapabilities } = require('./channels');
 const { autocompletePlaces, computeDriveTime } = require('./maps');
 const { createWebsiteReservation, transitionReservation } = require('./reservations');
@@ -41,6 +41,23 @@ function requireSuperAdmin(req, res, next) {
   next();
 }
 
+function requireStoreAdmin(req, res, next) {
+  if (!req.staff || req.staff.role !== 'STORE_ADMIN') return res.status(403).json({ ok: false, error: 'Store Admin access required.' });
+  next();
+}
+
+function requireStoreStaff(req, res, next) {
+  if (!req.staff || !['STORE_ADMIN','STAFF'].includes(req.staff.role)) return res.status(403).json({ ok: false, error: 'Store staff access required.' });
+  next();
+}
+
+function lowStockThreshold() {
+  const configured = Number(process.env.INVENTORY_LOW_STOCK_THRESHOLD);
+  return Number.isFinite(configured) && configured >= 0
+    ? Math.min(999999, configured)
+    : 5;
+}
+
 async function publicProducts() {
   const result = await pool.query(`
     SELECT p.*,
@@ -66,6 +83,7 @@ async function publicProducts() {
     GROUP BY p.id
     ORDER BY p.featured DESC,p.sort_order,p.updated_at DESC
   `);
+  const threshold = lowStockThreshold();
   return result.rows.map((row) => ({
     id: Number(row.id),
     name: row.name,
@@ -80,7 +98,10 @@ async function publicProducts() {
     imageUrl: row.image_url,
     labUrl: row.lab_url,
     featured: row.featured,
-    variants: row.variants || []
+    variants: (row.variants || []).map((variant) => ({
+      ...variant,
+      status: stockStatus(variant.availableQty, threshold)
+    }))
   }));
 }
 
@@ -199,7 +220,7 @@ function registerCoryCoreApi(app) {
     } catch (error) { next(error); }
   });
 
-  app.get('/api/admin/cory/inventory', async (_req, res, next) => {
+  app.get('/api/admin/cory/inventory', requireStoreStaff, async (_req, res, next) => {
     try {
       const location = await primaryLocation();
       const rows = await pool.query(`
@@ -213,11 +234,16 @@ function registerCoryCoreApi(app) {
         GROUP BY p.id,v.id
         ORDER BY p.name,v.label
       `, [location.id]);
-      res.json({ ok: true, location, inventory: rows.rows });
+      const threshold = lowStockThreshold();
+      const inventory = rows.rows.map((row) => ({
+        ...row,
+        status: stockStatus(row.available_qty, threshold)
+      }));
+      res.json({ ok: true, location, lowStockThreshold: threshold, inventory });
     } catch (error) { next(error); }
   });
 
-  app.post('/api/admin/cory/inventory/:variantId/adjust', async (req, res, next) => {
+  app.post('/api/admin/cory/inventory/:variantId/adjust', requireStoreStaff, async (req, res, next) => {
     try {
       const location = await primaryLocation();
       const result = await adjustInventory({
@@ -227,12 +253,9 @@ function registerCoryCoreApi(app) {
         reason: req.body && req.body.reason,
         reference: req.body && req.body.reference,
         eventType: text(req.body && req.body.eventType, 30).toUpperCase(),
-        actorRef: req.staff.email
+        actorRef: req.staff.email,
+        lowStockThreshold: lowStockThreshold()
       });
-      await pool.query(`
-        INSERT INTO retail_audit_events(actor_type,actor_ref,action,entity_type,entity_id,after_json,reference)
-        VALUES('STAFF',$1,'INVENTORY_ADJUSTED','VARIANT',$2,$3::jsonb,$4)
-      `, [req.staff.email, String(req.params.variantId), JSON.stringify(result), text(req.body && req.body.reference, 200)]);
       res.json({ ok: true, inventory: result });
     } catch (error) { next(error); }
   });
@@ -264,5 +287,8 @@ function registerCoryCoreApi(app) {
 }
 
 module.exports = {
-  registerCoryCoreApi
+  attachStaff,
+  registerCoryCoreApi,
+  requireStoreAdmin,
+  requireStoreStaff
 };

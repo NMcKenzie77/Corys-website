@@ -5,6 +5,24 @@ const { httpError, text } = require('./identity');
 
 const EXPIRABLE_STATUSES = ['NEW','NEEDS_CLARIFICATION','CONFIRMED','PICKING','READY'];
 
+function stockStatus(availableQty, threshold = 5) {
+  const available = Math.max(0, Number(availableQty) || 0);
+  const lowStockThreshold = Math.max(0, Number(threshold) || 0);
+  return available <= lowStockThreshold ? 'LOW STOCK' : 'AVAILABLE';
+}
+
+function assertAdjustmentRespectsHolds(nextQty, heldQty) {
+  const onHand = Number(nextQty);
+  const held = Math.max(0, Number(heldQty) || 0);
+  if (onHand < held) {
+    throw httpError(
+      `This adjustment would reduce on-hand inventory below the ${held} units currently held for pickup reservations.`,
+      409,
+      'ACTIVE_HOLDS_EXCEED_ON_HAND'
+    );
+  }
+}
+
 async function loadVariantsForUpdate(client, locationId, requested) {
   const ids = [...new Set(requested.map((item) => Number(item.variantId)))];
   const result = await client.query(`
@@ -152,10 +170,21 @@ async function adjustInventory(options) {
   if (requestedType === 'DAMAGE' && quantityDelta > -1) throw httpError('Damage inventory events must reduce on-hand quantity.');
 
   return withTransaction(async (client) => {
-    const variant = await client.query('SELECT * FROM product_variants WHERE id=$1 FOR UPDATE', [options.variantId]);
+    const variant = await client.query(`
+      SELECT v.*,
+        COALESCE((
+          SELECT SUM(h.quantity)::int
+          FROM retail_inventory_holds h
+          WHERE h.location_id=$2 AND h.variant_id=v.id AND h.state='ACTIVE'
+        ),0) AS held_qty
+      FROM product_variants v
+      WHERE v.id=$1
+      FOR UPDATE OF v
+    `, [options.variantId, options.locationId]);
     if (!variant.rowCount) throw httpError('Package not found.', 404);
     const nextQty = Number(variant.rows[0].inventory_qty) + quantityDelta;
     if (nextQty < 0) throw httpError('Adjustment would make on-hand inventory negative.', 409);
+    assertAdjustmentRespectsHolds(nextQty, variant.rows[0].held_qty);
     await client.query('UPDATE product_variants SET inventory_qty=$1,updated_at=NOW() WHERE id=$2', [nextQty, options.variantId]);
     const available = await availableAfterHold(client, options.locationId, options.variantId);
     const eventType = requestedType;
@@ -165,7 +194,17 @@ async function adjustInventory(options) {
       ) VALUES($1,$2,$3,$4,$5,'STAFF',$6,$7,$8)
       RETURNING *
     `, [options.locationId, options.variantId, eventType, quantityDelta, available, text(options.actorRef, 200), reason, text(options.reference, 200)]);
-    return { onHand: nextQty, available };
+    const outcome = {
+      onHand: nextQty,
+      held: Number(variant.rows[0].held_qty || 0),
+      available,
+      status: stockStatus(available, options.lowStockThreshold)
+    };
+    await client.query(`
+      INSERT INTO retail_audit_events(actor_type,actor_ref,action,entity_type,entity_id,after_json,reference)
+      VALUES('STAFF',$1,'INVENTORY_ADJUSTED','VARIANT',$2,$3::jsonb,$4)
+    `, [text(options.actorRef, 200), String(options.variantId), JSON.stringify(outcome), text(options.reference, 200)]);
+    return outcome;
   });
 }
 
@@ -198,9 +237,11 @@ async function expireHolds() {
 module.exports = {
   EXPIRABLE_STATUSES,
   adjustInventory,
+  assertAdjustmentRespectsHolds,
   consumeOrderHolds,
   createHolds,
   expireHolds,
   loadVariantsForUpdate,
-  releaseOrderHolds
+  releaseOrderHolds,
+  stockStatus
 };

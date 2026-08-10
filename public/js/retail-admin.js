@@ -2,7 +2,8 @@
   'use strict';
 
   var state = {
-    products: [], orders: [], customers: [], campaigns: [], automations: null,
+    products: [], inventory: [], orders: [], customers: [], campaigns: [], automations: null,
+    currentUser: null, lowStockThreshold: 5,
     privacyRequests: [], selectedProduct: null, selectedOrder: null, selectedCustomer: null, selectedRequest: null
   };
 
@@ -31,17 +32,32 @@
   var pageTitle = one('[data-admin-title]');
   var adminEmail = one('[data-admin-email]');
 
-  function showLogin() { loginView.hidden = false; shell.hidden = true; }
-  function showShell(email) { loginView.hidden = true; shell.hidden = false; adminEmail.textContent = email || ''; openPanel(location.hash.replace('#', '') || 'dashboard'); }
+  function showLogin() { loginView.hidden = false; shell.hidden = true; state.currentUser = null; }
+  function showShell(email) {
+    loginView.hidden = true;
+    shell.hidden = true;
+    api('/api/admin/cory/me').then(function (body) {
+      state.currentUser = body.user;
+      adminEmail.textContent = (body.user.displayName || email || '') + ' · ' + body.user.role.replace('_', ' ');
+      all('[data-new-product]').forEach(function (button) { button.hidden = body.user.role !== 'STORE_ADMIN'; });
+      shell.hidden = false;
+      openPanel(location.hash.replace('#', '') || 'dashboard');
+    }).catch(function (error) {
+      loginStatus.textContent = error.message;
+      loginStatus.className = 'status error';
+      showLogin();
+    });
+  }
 
   function openPanel(name) {
     if (!one('[data-admin-panel="' + name + '"]')) name = 'dashboard';
     all('[data-admin-panel]').forEach(function (panel) { panel.hidden = panel.getAttribute('data-admin-panel') !== name; });
     all('[data-admin-nav]').forEach(function (button) { button.classList.toggle('active', button.getAttribute('data-admin-nav') === name); });
-    pageTitle.textContent = ({ dashboard: 'Dashboard', products: 'Menu products', orders: 'Pickup orders', customers: 'Customers', campaigns: 'Campaigns', automations: 'Automations', compliance: 'Compliance' })[name] || 'Dashboard';
+    pageTitle.textContent = ({ dashboard: 'Dashboard', products: 'Menu products', inventory: 'Inventory', orders: 'Pickup orders', customers: 'Customers', campaigns: 'Campaigns', automations: 'Automations', compliance: 'Compliance' })[name] || 'Dashboard';
     if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
     if (name === 'dashboard') loadDashboard();
     if (name === 'products') loadProducts();
+    if (name === 'inventory') loadInventory();
     if (name === 'orders') loadOrders();
     if (name === 'customers') loadCustomers();
     if (name === 'campaigns') loadCampaigns();
@@ -109,10 +125,11 @@
 
   function variantRow(data) {
     data = data || {};
+    var existing = Boolean(data.id);
     var row = document.createElement('div');
     row.className = 'panel';
     row.setAttribute('data-variant-row', '');
-    row.innerHTML = '<div class="form-grid"><label class="field"><span>SKU</span><input data-v="sku" required value="' + esc(data.sku || '') + '"></label><label class="field"><span>Package label</span><input data-v="label" required value="' + esc(data.label || '') + '"></label><label class="field"><span>Barcode</span><input data-v="barcode" value="' + esc(data.barcode || '') + '"></label><label class="field"><span>Inventory units</span><input data-v="inventoryQty" type="number" min="0" step="1" required value="' + Number(data.inventoryQty || 0) + '"></label><label class="field"><span>Acquisition cost</span><input data-v="acquisitionCost" type="number" min="0" step="0.01" required value="' + dollars(data.acquisitionCostCents) + '"></label><label class="field"><span>Regular price</span><input data-v="price" type="number" min="0" step="0.01" required value="' + dollars(data.priceCents) + '"></label><label class="field"><span>Sale price</span><input data-v="salePrice" type="number" min="0" step="0.01" value="' + (data.salePriceCents == null ? '' : dollars(data.salePriceCents)) + '"></label><label class="field"><span>Purchase-limit category</span><select data-v="limitCategory" required><option value="">Choose</option><option value="USABLE_CANNABIS_GRAMS">Usable cannabis grams</option><option value="CONCENTRATE_GRAMS">Concentrate grams</option><option value="INFUSED_SOLID_OUNCES">Infused solid ounces</option><option value="INFUSED_LIQUID_OUNCES">Infused liquid ounces</option><option value="INFUSED_LIQUID_LOW_DOSE_THC_MG">Low-dose liquid THC mg</option></select></label><label class="field"><span>Amount per package</span><input data-v="limitAmount" type="number" min="0.0001" step="0.0001" required value="' + Number(data.limitAmount || 0) + '"></label><label class="check"><input data-v="active" type="checkbox"' + (data.active !== false ? ' checked' : '') + '><span>Active package</span></label></div><button class="button secondary" type="button" data-remove-variant>Remove package</button>';
+    row.innerHTML = '<div class="form-grid"><label class="field"><span>SKU</span><input data-v="sku" required value="' + esc(data.sku || '') + '"' + (existing ? ' readonly' : '') + '></label><label class="field"><span>Package label</span><input data-v="label" required value="' + esc(data.label || '') + '"></label><label class="field"><span>Barcode</span><input data-v="barcode" value="' + esc(data.barcode || '') + '"></label><label class="field"><span>' + (existing ? 'On-hand inventory' : 'Opening inventory units') + '</span><input data-v="inventoryQty" type="number" min="0" step="1" required value="' + Number(data.inventoryQty || 0) + '"' + (existing ? ' readonly aria-readonly="true"' : '') + '>' + (existing ? '<small>Use the Inventory screen to change this quantity.</small>' : '') + '</label><label class="field"><span>Acquisition cost</span><input data-v="acquisitionCost" type="number" min="0" step="0.01" required value="' + dollars(data.acquisitionCostCents) + '"></label><label class="field"><span>Regular price</span><input data-v="price" type="number" min="0" step="0.01" required value="' + dollars(data.priceCents) + '"></label><label class="field"><span>Sale price</span><input data-v="salePrice" type="number" min="0" step="0.01" value="' + (data.salePriceCents == null ? '' : dollars(data.salePriceCents)) + '"></label><label class="field"><span>Purchase-limit category</span><select data-v="limitCategory" required><option value="">Choose</option><option value="USABLE_CANNABIS_GRAMS">Usable cannabis grams</option><option value="CONCENTRATE_GRAMS">Concentrate grams</option><option value="INFUSED_SOLID_OUNCES">Infused solid ounces</option><option value="INFUSED_LIQUID_OUNCES">Infused liquid ounces</option><option value="INFUSED_LIQUID_LOW_DOSE_THC_MG">Low-dose liquid THC mg</option></select></label><label class="field"><span>Amount per package</span><input data-v="limitAmount" type="number" min="0.0001" step="0.0001" required value="' + Number(data.limitAmount || 0) + '"></label><label class="check"><input data-v="active" type="checkbox"' + (data.active !== false ? ' checked' : '') + '><span>Active package</span></label></div><button class="button secondary" type="button" data-remove-variant>Remove package</button>';
     one('[data-v="limitCategory"]', row).value = data.limitCategory || '';
     return row;
   }
@@ -136,11 +153,11 @@
   }
 
   function closeProduct() { productModal.hidden = true; }
-  one('[data-new-product]').addEventListener('click', function () { openProduct(null); });
+  all('[data-new-product]').forEach(function (button) { button.addEventListener('click', function () { openProduct(null); }); });
   all('[data-close-product]').forEach(function (button) { button.addEventListener('click', closeProduct); });
   one('[data-add-variant]').addEventListener('click', function () { variantList.appendChild(variantRow({})); });
   variantList.addEventListener('click', function (event) { var button = event.target.closest('[data-remove-variant]'); if (button && all('[data-variant-row]', variantList).length > 1) button.closest('[data-variant-row]').remove(); });
-  one('[data-products-table]').addEventListener('click', function (event) { var row = event.target.closest('[data-product-id]'); if (row) openProduct(state.products.find(function (item) { return Number(item.id) === Number(row.getAttribute('data-product-id')); })); });
+  one('[data-products-table]').addEventListener('click', function (event) { var row = event.target.closest('[data-product-id]'); if (row && state.currentUser && state.currentUser.role === 'STORE_ADMIN') openProduct(state.products.find(function (item) { return Number(item.id) === Number(row.getAttribute('data-product-id')); })); });
 
   function productPayload() {
     var payload = {};
@@ -167,6 +184,115 @@
     if (!file) { uploadStatus.textContent = 'Choose an image first.'; return; }
     var data = new FormData(); data.append('image', file); uploadStatus.textContent = 'Uploading…';
     api('/api/admin/retail/upload', { method: 'POST', body: data }).then(function (body) { productForm.elements.imageUrl.value = body.url; uploadStatus.textContent = 'Image uploaded.'; }).catch(function (error) { uploadStatus.textContent = error.message; });
+  });
+
+  var inventoryModal = one('[data-inventory-modal]');
+  var inventoryForm = one('[data-inventory-form]');
+  var inventoryStatus = one('[data-inventory-status]');
+  var inventoryQuantityLabel = one('[data-inventory-quantity-label]');
+
+  function renderInventory() {
+    var query = one('[data-inventory-search]').value.trim().toLowerCase();
+    var statusFilter = one('[data-inventory-status-filter]').value;
+    var visible = state.inventory.filter(function (item) {
+      var haystack = [item.name, item.brand, item.category, item.sku, item.label].join(' ').toLowerCase();
+      return (!query || haystack.indexOf(query) !== -1) && (!statusFilter || item.status === statusFilter);
+    });
+    var availableCount = state.inventory.filter(function (item) { return item.status === 'AVAILABLE'; }).length;
+    var lowCount = state.inventory.filter(function (item) { return item.status === 'LOW STOCK'; }).length;
+    one('[data-inventory-summary]').innerHTML = '<span><strong>' + state.inventory.length + '</strong> packages</span><span><strong>' + availableCount + '</strong> available</span><span><strong>' + lowCount + '</strong> low stock</span><span>Low stock is ' + state.lowStockThreshold + ' available units or fewer.</span>';
+    one('[data-inventory-table]').innerHTML = visible.map(function (item) {
+      var badgeClass = item.status === 'LOW STOCK' ? 'low-stock' : 'available';
+      return '<tr><td><strong>' + esc(item.name) + '</strong><br><small>' + esc(item.brand || item.category || '') + '</small></td><td><strong>' + esc(item.sku) + '</strong><br><small>' + esc(item.label) + '</small></td><td>' + Number(item.on_hand_qty || 0) + '</td><td>' + Number(item.held_qty || 0) + '</td><td><strong>' + Number(item.available_qty || 0) + '</strong></td><td><span class="stock-badge ' + badgeClass + '">' + esc(item.status) + '</span></td><td><button class="button secondary compact" type="button" data-adjust-inventory="' + Number(item.variant_id) + '">Update</button></td></tr>';
+    }).join('') || '<tr><td colspan="7">No inventory matches this view.</td></tr>';
+  }
+
+  function loadInventory() {
+    api('/api/admin/cory/inventory').then(function (body) {
+      state.inventory = body.inventory || [];
+      state.lowStockThreshold = Number(body.lowStockThreshold || 5);
+      renderInventory();
+    }).catch(handleAuth);
+  }
+
+  function syncInventoryAction() {
+    var action = inventoryForm.elements.action.value;
+    var selected = state.inventory.find(function (item) { return Number(item.variant_id) === Number(inventoryForm.elements.variantId.value); });
+    var input = inventoryForm.elements.quantity;
+    if (action === 'COUNT') {
+      inventoryQuantityLabel.textContent = 'New physical on-hand count';
+      input.min = selected ? Number(selected.held_qty || 0) : 0;
+      input.removeAttribute('max');
+      input.placeholder = selected ? String(selected.on_hand_qty) : '';
+    } else if (action === 'DAMAGE') {
+      inventoryQuantityLabel.textContent = 'Damaged units to remove';
+      input.min = 1;
+      input.max = selected ? Math.max(0, Number(selected.on_hand_qty) - Number(selected.held_qty || 0)) : '';
+      input.placeholder = '';
+    } else {
+      inventoryQuantityLabel.textContent = 'Units received';
+      input.min = 1;
+      input.removeAttribute('max');
+      input.placeholder = '';
+    }
+  }
+
+  function openInventory(item) {
+    inventoryForm.reset();
+    inventoryStatus.textContent = '';
+    inventoryStatus.className = 'status';
+    inventoryForm.elements.variantId.value = item.variant_id;
+    inventoryForm.elements.currentOnHand.value = item.on_hand_qty;
+    one('[data-inventory-modal-title]').textContent = item.name + ' · ' + item.label;
+    one('[data-inventory-counts]').innerHTML = '<span>On hand<strong>' + Number(item.on_hand_qty || 0) + '</strong></span><span>Held<strong>' + Number(item.held_qty || 0) + '</strong></span><span>Available<strong>' + Number(item.available_qty || 0) + '</strong></span>';
+    syncInventoryAction();
+    inventoryModal.hidden = false;
+  }
+
+  function closeInventory() { inventoryModal.hidden = true; }
+  one('[data-refresh-inventory]').addEventListener('click', loadInventory);
+  one('[data-inventory-search]').addEventListener('input', renderInventory);
+  one('[data-inventory-status-filter]').addEventListener('change', renderInventory);
+  one('[data-inventory-table]').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-adjust-inventory]');
+    if (!button) return;
+    var item = state.inventory.find(function (row) { return Number(row.variant_id) === Number(button.getAttribute('data-adjust-inventory')); });
+    if (item) openInventory(item);
+  });
+  all('[data-close-inventory]').forEach(function (button) { button.addEventListener('click', closeInventory); });
+  inventoryForm.elements.action.addEventListener('change', function () { inventoryForm.elements.quantity.value = ''; syncInventoryAction(); });
+  inventoryForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (!inventoryForm.reportValidity()) return;
+    var action = inventoryForm.elements.action.value;
+    var amount = Number(inventoryForm.elements.quantity.value);
+    var current = Number(inventoryForm.elements.currentOnHand.value);
+    var delta = action === 'COUNT' ? amount - current : (action === 'DAMAGE' ? -amount : amount);
+    if (!Number.isInteger(delta) || delta === 0) {
+      inventoryStatus.textContent = action === 'COUNT' ? 'Enter a different physical count.' : 'Enter a whole number greater than zero.';
+      inventoryStatus.className = 'status error';
+      return;
+    }
+    inventoryStatus.textContent = 'Saving inventory update…';
+    inventoryStatus.className = 'status';
+    api('/api/admin/cory/inventory/' + inventoryForm.elements.variantId.value + '/adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quantityDelta: delta,
+        eventType: action === 'COUNT' ? 'ADJUSTMENT' : action,
+        reason: inventoryForm.elements.reason.value,
+        reference: inventoryForm.elements.reference.value
+      })
+    }).then(function () {
+      closeInventory();
+      loadInventory();
+      loadProducts();
+      loadDashboard();
+    }).catch(function (error) {
+      inventoryStatus.textContent = error.message;
+      inventoryStatus.className = 'status error';
+    });
   });
 
   function loadOrders() {

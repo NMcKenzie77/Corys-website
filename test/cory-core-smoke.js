@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const { classifyIdentityMatches, normalizeEmail, normalizePhone } = require('../cory-core/identity');
-const { EXPIRABLE_STATUSES } = require('../cory-core/inventory');
+const { EXPIRABLE_STATUSES, assertAdjustmentRespectsHolds, stockStatus } = require('../cory-core/inventory');
 const { waypoint } = require('../cory-core/maps');
 const { TRANSITIONS, normalizeRequestedItems } = require('../cory-core/reservations');
 const { pickupPlan } = require('../cory-core/scheduling');
@@ -43,6 +43,12 @@ assert.deepEqual(classifyIdentityMatches([10, 11], [
 assert.ok(EXPIRABLE_STATUSES.includes('PICKING'));
 assert.ok(EXPIRABLE_STATUSES.includes('READY'));
 assert.ok(TRANSITIONS.PICKING.includes('EXPIRED'));
+
+assert.equal(stockStatus(6, 5), 'AVAILABLE');
+assert.equal(stockStatus(5, 5), 'LOW STOCK');
+assert.equal(stockStatus(0, 5), 'LOW STOCK');
+assert.doesNotThrow(() => assertAdjustmentRespectsHolds(5, 5));
+assert.throws(() => assertAdjustmentRespectsHolds(4, 5), /currently held for pickup reservations/);
 
 assert.deepEqual(waypoint({ placeId: 'ChIJ-test' }), { placeId: 'ChIJ-test' });
 assert.deepEqual(waypoint({ latitude: 47.61, longitude: -122.33 }), {

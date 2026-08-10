@@ -397,10 +397,10 @@ async function ensureCoryCoreSchema() {
   if (adminEmail) {
     await pool.query(`
       INSERT INTO retail_staff_users(email,display_name,role,location_id,active,mfa_required)
-      VALUES($1,$2,'SUPER_ADMIN',$3,TRUE,TRUE)
+      VALUES($1,$2,'STORE_ADMIN',$3,TRUE,FALSE)
       ON CONFLICT(email) DO UPDATE SET
-        role='SUPER_ADMIN',active=TRUE,mfa_required=TRUE,updated_at=NOW()
-    `, [adminEmail, process.env.SUPER_ADMIN_NAME || 'Super Admin', locationId]);
+        role='STORE_ADMIN',location_id=$3,active=TRUE,mfa_required=FALSE,updated_at=NOW()
+    `, [adminEmail, process.env.ADMIN_NAME || 'Store Admin', locationId]);
   }
 
   const integrationRows = [
