@@ -15,7 +15,7 @@ The application is a modular Node/Express + PostgreSQL monolith. The `cory-core/
 - `channels.js` — durable notification outbox and channel capability gates.
 - `adapter-contract.js` — replaceable inbound/outbound channel contract.
 - `maps.js` — Google Places autocomplete and traffic-aware Google Routes estimates without persisting the customer's origin.
-- `api.js` — public reservation/drive-time APIs plus staff/Super Admin operational endpoints.
+- `api.js` — public reservation/drive-time APIs plus store-staff and platform-admin operational endpoints.
 
 ## Canonical retail model
 
@@ -36,6 +36,8 @@ An ASAP confirmed reservation holds inventory for two hours. Scheduled pickup is
 `physical on-hand - active Cory holds`
 
 Creating, releasing, consuming, receiving, damaging, or adjusting inventory writes an inventory event. Concurrent holds lock the SKU row so two customers cannot reserve the last unit.
+
+Authorized store staff use the Inventory screen to receive stock, correct a physical count, or record damaged units. Existing on-hand quantities cannot be overwritten from the product editor. An adjustment that would reduce on-hand quantity below active pickup holds is rejected. Customer-facing status is `AVAILABLE` or `LOW STOCK`; the default low-stock threshold is five available units and can be changed with `INVENTORY_LOW_STOCK_THRESHOLD`.
 
 ## Omnichannel status
 
@@ -76,7 +78,8 @@ STORE_HOURS=
 
 ADMIN_EMAIL=
 ADMIN_PASSWORD_HASH=          # preferred over plaintext ADMIN_PASSWORD
-SUPER_ADMIN_NAME=
+ADMIN_NAME=
+INVENTORY_LOW_STOCK_THRESHOLD=5
 
 RESEND_API_KEY=
 EMAIL_FROM=
@@ -85,7 +88,7 @@ GOOGLE_MAPS_API_KEY=
 GOOGLE_STORE_PLACE_ID=
 ```
 
-`ADMIN_EMAIL` is seeded into `retail_staff_users` as `SUPER_ADMIN` with `mfa_required=true`. MFA enforcement still must be enabled before production; the schema flag is not a substitute for the second authentication factor.
+`ADMIN_EMAIL` is seeded into `retail_staff_users` as Cory's `STORE_ADMIN`. Cory does not receive a separate Super Admin login; platform-level Super Admin access remains owned by ARKON Platform. TOTP for that platform access remains pinned until it can be configured safely.
 
 ## Run and validate
 
@@ -102,9 +105,9 @@ The server initializes the base product schema, compliance schema, retail schema
 Do not treat this branch as production-ready until these gates are completed:
 
 1. PostgreSQL migration/restore test against a copy of production data.
-2. Super Admin MFA enforcement and individual staff login flow.
+2. Individual Store Admin/Staff login flow and secure ARKON Platform administrative access; platform TOTP remains pinned until configuration is possible.
 3. Concurrency tests for last-unit holds, cancel/expire, and legacy-order migration.
-4. Staff-friendly inventory management screen for authorized users to add products/variants, receive or adjust on-hand quantities, and see `AVAILABLE` / `LOW STOCK` status without touching the database; all adjustments must preserve active holds and write inventory ledger/audit events.
+4. Production-database validation of the staff inventory screen: add products/variants, receive stock, correct counts, record damage, verify `AVAILABLE` / `LOW STOCK`, preserve active holds, and confirm inventory ledger/audit events.
 5. Inbound email and voice provider configuration with signed webhook verification.
 6. Written/provider validation before any cannabis SMS integration; WhatsApp stays disabled under current policy.
 7. Google Maps billing/API restrictions and production key configuration.

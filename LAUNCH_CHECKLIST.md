@@ -43,7 +43,7 @@ For every active product:
 7. Add each package SKU and barcode.
 8. Record current acquisition cost.
 9. Set regular and optional sale price at or above acquisition cost.
-10. Record current inventory.
+10. Add products and packages in Menu products, then record opening quantities and subsequent changes through the Inventory screen.
 11. Assign the correct purchase-limit category and amount per package:
     - usable cannabis grams;
     - concentrate grams;
@@ -67,6 +67,9 @@ For every active product:
 11. Confirm the ready notice instructs the customer to bring ID and pay in store.
 12. Cancel a second test reservation and confirm inventory is restored.
 13. Expire an unclaimed test reservation and confirm inventory is restored.
+14. Receive stock, correct a physical count, and record damaged stock through the Inventory screen; confirm every change appears in the inventory ledger and audit log.
+15. Attempt to reduce on-hand quantity below active pickup holds and confirm the update is rejected.
+16. Confirm each package displays only `AVAILABLE` or `LOW STOCK` using the configured threshold.
 
 ## 5. In-store completion procedure
 

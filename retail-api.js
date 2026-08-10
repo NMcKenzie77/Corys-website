@@ -10,6 +10,7 @@ const {
   clearSessionCookie,
   requireAdmin
 } = require('./auth');
+const { attachStaff, requireStoreAdmin } = require('./cory-core/api');
 
 const ORDER_STATUSES = ['NEW','NEEDS_CLARIFICATION','CONFIRMED','PICKING','READY','COMPLETED','CANCELLED','EXPIRED','REJECTED'];
 const ORDER_TRANSITIONS = {
@@ -322,22 +323,41 @@ function productPayload(body) {
   return payload;
 }
 
-async function saveVariants(client, productId, variants) {
+async function saveVariants(client, productId, variants, options) {
   for (const variant of variants) {
-    await client.query(`INSERT INTO product_variants(product_id,sku,label,price_cents,sale_price_cents,inventory_qty,active,barcode)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8)
-      ON CONFLICT(sku) DO UPDATE SET label=EXCLUDED.label,price_cents=EXCLUDED.price_cents,
-        sale_price_cents=EXCLUDED.sale_price_cents,inventory_qty=EXCLUDED.inventory_qty,
-        active=EXCLUDED.active,barcode=EXCLUDED.barcode,updated_at=NOW()
-      WHERE product_variants.product_id=EXCLUDED.product_id`,
+    const existing = await client.query('SELECT * FROM product_variants WHERE sku=$1 FOR UPDATE', [variant.sku]);
+    if (existing.rowCount) {
+      const current = existing.rows[0];
+      if (Number(current.product_id) !== Number(productId)) throw httpError(`SKU ${variant.sku} is already used by another product.`, 409);
+      if (Number(current.inventory_qty) !== Number(variant.inventoryQty)) {
+        throw httpError(`Use the Inventory screen to change on-hand quantity for SKU ${variant.sku}.`, 409);
+      }
+      await client.query(`UPDATE product_variants SET label=$1,price_cents=$2,sale_price_cents=$3,active=$4,barcode=$5,updated_at=NOW() WHERE id=$6`,
+        [variant.label, variant.priceCents, variant.salePriceCents, variant.active, variant.barcode, current.id]);
+      continue;
+    }
+
+    const inserted = await client.query(`INSERT INTO product_variants(product_id,sku,label,price_cents,sale_price_cents,inventory_qty,active,barcode)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
       [productId, variant.sku, variant.label, variant.priceCents, variant.salePriceCents, variant.inventoryQty, variant.active, variant.barcode]);
+    if (variant.inventoryQty > 0) {
+      await client.query(`INSERT INTO retail_inventory_ledger(
+          location_id,variant_id,event_type,quantity_delta,quantity_after,actor_type,actor_ref,reason,reference
+        ) VALUES($1,$2,'OPENING_BALANCE',$3,$3,'STAFF',$4,'Opening balance entered when package was created',$5)`,
+        [options.locationId, inserted.rows[0].id, variant.inventoryQty, options.actorRef, `product:${productId}`]);
+    }
   }
   const skus = variants.map((item) => item.sku);
-  const omitted = await client.query('SELECT id FROM product_variants WHERE product_id=$1 AND active=TRUE AND NOT (sku=ANY($2::text[]))', [productId, skus]);
+  const omitted = await client.query('SELECT id FROM product_variants WHERE product_id=$1 AND active=TRUE AND NOT (sku=ANY($2::text[])) FOR UPDATE', [productId, skus]);
   if (omitted.rowCount) {
     const ids = omitted.rows.map((row) => row.id);
-    const open = await client.query(`SELECT 1 FROM retail_order_items i JOIN retail_orders o ON o.id=i.order_id
-      WHERE i.variant_id=ANY($1::bigint[]) AND o.status NOT IN ('COMPLETED','CANCELLED','EXPIRED') LIMIT 1`, [ids]);
+    const open = await client.query(`SELECT 1
+      FROM retail_order_items i
+      JOIN retail_orders o ON o.id=i.order_id
+      WHERE i.variant_id=ANY($1::bigint[]) AND o.status NOT IN ('COMPLETED','CANCELLED','EXPIRED','REJECTED')
+      UNION ALL
+      SELECT 1 FROM retail_inventory_holds h WHERE h.variant_id=ANY($1::bigint[]) AND h.state='ACTIVE'
+      LIMIT 1`, [ids]);
     if (open.rowCount) throw httpError('A package tied to an open pickup order cannot be removed.', 409);
     await client.query('UPDATE product_variants SET active=FALSE,updated_at=NOW() WHERE id=ANY($1::bigint[])', [ids]);
   }
@@ -587,31 +607,42 @@ function registerRetailApi(app) {
     } catch (error) { next(error); }
   });
 
-  app.get('/api/admin/retail/products', requireAdmin, async (_req, res, next) => { try {
+  app.get('/api/admin/retail/products', requireAdmin, attachStaff, async (_req, res, next) => { try {
     const result = await pool.query(`SELECT p.*,COALESCE(JSON_AGG(JSON_BUILD_OBJECT('id',v.id,'sku',v.sku,'label',v.label,'barcode',v.barcode,'priceCents',v.price_cents,'salePriceCents',v.sale_price_cents,'inventoryQty',v.inventory_qty,'active',v.active) ORDER BY v.id) FILTER(WHERE v.id IS NOT NULL),'[]'::json) variants FROM products p LEFT JOIN product_variants v ON v.product_id=p.id GROUP BY p.id ORDER BY p.updated_at DESC`);
     res.json({ ok: true, products: result.rows });
   } catch (error) { next(error); } });
 
-  app.post('/api/admin/retail/products', requireAdmin, async (req, res, next) => { try {
+  app.post('/api/admin/retail/products', requireAdmin, attachStaff, requireStoreAdmin, async (req, res, next) => { try {
     const p = productPayload(req.body || {});
     const result = await withTransaction(async (client) => {
       const product = await client.query(`INSERT INTO products(name,slug,category,brand,strain_type,product_form,thc_text,cbd_text,description,image_url,lab_url,vendor_name,featured,active,sort_order)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`, [p.name,p.slug,p.category,p.brand,p.strainType,p.productForm,p.thcText,p.cbdText,p.description,p.imageUrl,p.labUrl,p.vendorName,p.featured,p.active,p.sortOrder]);
-      await saveVariants(client, product.rows[0].id, p.variants); return product.rows[0];
+      const location = await client.query(`SELECT id FROM retail_locations WHERE location_key='primary' LIMIT 1`);
+      if (!location.rowCount) throw httpError('Store location is not configured.', 503);
+      await saveVariants(client, product.rows[0].id, p.variants, { locationId: location.rows[0].id, actorRef: req.staff.email });
+      await client.query(`INSERT INTO retail_audit_events(actor_type,actor_ref,action,entity_type,entity_id,after_json,reference)
+        VALUES('STAFF',$1,'PRODUCT_CREATED','PRODUCT',$2,$3::jsonb,$4)`, [req.staff.email, String(product.rows[0].id), JSON.stringify(product.rows[0]), `product:${product.rows[0].id}`]);
+      return product.rows[0];
     });
     res.status(201).json({ ok: true, product: result });
   } catch (error) { next(error); } });
 
-  app.put('/api/admin/retail/products/:id', requireAdmin, async (req, res, next) => { try {
+  app.put('/api/admin/retail/products/:id', requireAdmin, attachStaff, requireStoreAdmin, async (req, res, next) => { try {
     const p = productPayload(req.body || {}); const id = Number(req.params.id);
     const result = await withTransaction(async (client) => {
       const product = await client.query(`UPDATE products SET name=$1,slug=$2,category=$3,brand=$4,strain_type=$5,product_form=$6,thc_text=$7,cbd_text=$8,description=$9,image_url=$10,lab_url=$11,vendor_name=$12,featured=$13,active=$14,sort_order=$15,updated_at=NOW() WHERE id=$16 RETURNING *`, [p.name,p.slug,p.category,p.brand,p.strainType,p.productForm,p.thcText,p.cbdText,p.description,p.imageUrl,p.labUrl,p.vendorName,p.featured,p.active,p.sortOrder,id]);
-      if (!product.rowCount) throw httpError('Product not found.', 404); await saveVariants(client, id, p.variants); return product.rows[0];
+      if (!product.rowCount) throw httpError('Product not found.', 404);
+      const location = await client.query(`SELECT id FROM retail_locations WHERE location_key='primary' LIMIT 1`);
+      if (!location.rowCount) throw httpError('Store location is not configured.', 503);
+      await saveVariants(client, id, p.variants, { locationId: location.rows[0].id, actorRef: req.staff.email });
+      await client.query(`INSERT INTO retail_audit_events(actor_type,actor_ref,action,entity_type,entity_id,after_json,reference)
+        VALUES('STAFF',$1,'PRODUCT_UPDATED','PRODUCT',$2,$3::jsonb,$4)`, [req.staff.email, String(id), JSON.stringify(product.rows[0]), `product:${id}`]);
+      return product.rows[0];
     });
     res.json({ ok: true, product: result });
   } catch (error) { next(error); } });
 
-  app.post('/api/admin/retail/upload', requireAdmin, upload.single('image'), async (req, res, next) => { try {
+  app.post('/api/admin/retail/upload', requireAdmin, attachStaff, requireStoreAdmin, upload.single('image'), async (req, res, next) => { try {
     if (!req.file) throw httpError('Choose an image.');
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) throw httpError('Cloudinary is not configured.', 503);
     cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });

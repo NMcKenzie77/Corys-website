@@ -87,6 +87,14 @@ requireText('public/js/retail-admin.js', 'data-v="acquisitionCost"', 'staff must
 requireText('public/js/retail-admin.js', 'data-v="limitCategory"', 'staff must assign purchase-limit category');
 requireText('views/retail/admin.html', 'name="idVerified"', 'staff completion form must record in-person ID verification');
 requireText('views/retail/admin.html', 'name="posReceiptNumber"', 'staff completion form must record POS receipt');
+requireText('views/retail/admin.html', 'data-admin-panel="inventory"', 'staff inventory screen is required');
+requireText('views/retail/admin.html', 'data-inventory-form', 'staff inventory adjustment form is required');
+requireText('public/js/retail-admin.js', '/api/admin/cory/inventory/', 'inventory updates must use the Cory inventory ledger API');
+requireText('cory-core/inventory.js', 'assertAdjustmentRespectsHolds', 'inventory adjustments must protect active pickup holds');
+requireText('cory-core/inventory.js', "'LOW STOCK'", 'inventory must expose the locked LOW STOCK status');
+requireText('public/js/retail-menu.js', 'variant.status', 'the public menu must use the locked inventory status labels');
+forbidText('public/js/retail-menu.js', "Number(variant.inventoryQty || 0) + ' available'", 'the public menu must not expose exact inventory counts');
+forbidText('retail-api.js', 'inventory_qty=EXCLUDED.inventory_qty', 'product editing must not overwrite existing on-hand inventory');
 
 const home = read('views/retail/pages/home.html');
 forbidText('views/retail/pages/home.html', 'producer-processor', 'homepage must not describe a dispensary as a producer-processor');
