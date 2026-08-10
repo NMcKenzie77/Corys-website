@@ -205,16 +205,16 @@
       .then(function (response) { return response.json().then(function (body) { return { ok: response.ok, body: body }; }); })
       .then(function (result) {
         if (!result.ok || !result.body.ok) throw new Error(result.body.error || 'Pickup request could not be submitted.');
+        if (result.body.transactionType !== 'PICKUP_RESERVATION_REQUEST' || result.body.saleCompleted !== false || result.body.paymentDue !== 'IN_STORE') {
+          throw new Error('The pickup request response did not preserve the required in-store-sale boundary.');
+        }
+        var code = esc(result.body.reservationCode || result.body.orderNumber);
+        var windowLabel = esc(result.body.pickupWindow);
         window.RetailCart.clear();
         render();
         form.reset();
         pendingReservationId = '';
         syncPickupTime();
-        var code = esc(result.body.reservationCode || result.body.orderNumber);
-        var windowLabel = esc(result.body.pickupWindow);
-        if (result.body.saleCompleted !== false || result.body.paymentDue !== 'IN_STORE') {
-          throw new Error('The pickup request response did not preserve the required in-store-sale boundary.');
-        }
         if (result.body.status === 'CONFIRMED') {
           status.innerHTML = '<strong>Pickup request ' + code + ' received.</strong> A temporary inventory hold is active for <strong>' + windowLabel + '</strong> while store staff reviews the request. This is not a completed cannabis sale. Wait for the ready notification, then bring valid ID and pay inside the store.';
         } else {
