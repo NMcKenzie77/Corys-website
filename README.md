@@ -104,10 +104,11 @@ Do not treat this branch as production-ready until these gates are completed:
 1. PostgreSQL migration/restore test against a copy of production data.
 2. Super Admin MFA enforcement and individual staff login flow.
 3. Concurrency tests for last-unit holds, cancel/expire, and legacy-order migration.
-4. Inbound email and voice provider configuration with signed webhook verification.
-5. Written/provider validation before any cannabis SMS integration; WhatsApp stays disabled under current policy.
-6. Google Maps billing/API restrictions and production key configuration.
-7. Backup/PITR, monitoring, retention, and alerting verification in the hosting environment.
+4. Staff-friendly inventory management screen for authorized users to add products/variants, receive or adjust on-hand quantities, and see `AVAILABLE` / `LOW STOCK` status without touching the database; all adjustments must preserve active holds and write inventory ledger/audit events.
+5. Inbound email and voice provider configuration with signed webhook verification.
+6. Written/provider validation before any cannabis SMS integration; WhatsApp stays disabled under current policy.
+7. Google Maps billing/API restrictions and production key configuration.
+8. Backup/PITR, monitoring, retention, and alerting verification in the hosting environment.
 
 ## Legal boundary
 
