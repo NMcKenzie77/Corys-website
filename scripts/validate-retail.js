@@ -56,10 +56,21 @@ const layout = read('views/retail/layout.html');
   if (!layout.includes(warning)) errors.push(`views/retail/layout.html: missing required warning: ${warning}`);
 });
 requireText('views/retail/layout.html', 'data-age-gate', '21+ age gate is required');
+requireText('views/retail/layout.html', 'data-age-exit', 'age gate must provide an explicit exit action');
+requireText('views/retail/layout.html', 'aria-describedby="age-description age-legal"', 'age gate must expose its explanation to assistive technology');
+requireText('views/retail/layout.html', 'data-site-shell inert aria-hidden="true"', 'public content must start inaccessible until the gate passes');
+requireText('views/retail/layout.html', 'Entering this website does not verify your identity or age for pickup.', 'age gate must distinguish browsing access from in-store verification');
 requireText('views/retail/layout.html', 'No online cannabis payment, shipping, or delivery', 'pickup-only limitation must be prominent');
+requireText('public/js/retail-site.js', "sessionStorage.getItem(AGE_KEY)", 'age approval must be scoped to the browser tab session');
+requireText('public/js/retail-site.js', "sessionStorage.setItem(AGE_KEY, 'yes')", 'age approval must be recorded only for the browser tab session');
+requireText('public/js/retail-site.js', 'trapGateFocus', 'age gate must contain keyboard focus while open');
+forbidText('public/js/retail-site.js', "localStorage.setItem(AGE_KEY", 'age approval must not persist indefinitely in local storage');
+forbidText('public/js/retail-site.js', "localStorage.getItem(AGE_KEY", 'age approval must not be read from indefinite local storage');
 
 const pickup = read('views/retail/pages/pickup.html');
 requireText('views/retail/pages/pickup.html', 'name="ageConfirmed"', 'age confirmation is required');
+requireText('views/retail/pages/pickup.html', 'entering this website did not verify my age or identity', 'pickup must explicitly reconfirm age separately from the entry gate');
+requireText('cory-core/reservations.js', "if (!bool(body.ageConfirmed))", 'reservation API must reject missing 21+ attestation');
 requireText('views/retail/pages/pickup.html', 'name="privacyAccepted"', 'privacy acceptance is required');
 requireText('views/retail/pages/pickup.html', 'name="marketingConsent"', 'marketing consent must be separate and optional');
 ['address1', 'postalCode', 'cardNumber', 'paymentToken', 'deliveryAddress', 'shippingAddress'].forEach((field) => {
