@@ -100,12 +100,25 @@ const legal = read('retail-legal-controls.js');
   'Verify an acceptable, unexpired government-issued ID',
   'Record the in-store transaction or receipt reference before completing the pickup.',
   'Shipping, delivery, and online cannabis payment are not available',
-  "marketingState, 2).toUpperCase() !== 'WA'"
+  "marketingState, 2).toUpperCase() !== 'WA'",
+  'OVERCONSUMPTION_PATTERN',
+  'ASSOCIATION_PATTERN',
+  'FALSE_ENDORSEMENT_PATTERN',
+  'MISLEADING_PATTERN',
+  "validateAdvertisingCopy(combined, 'Public cannabis product copy')",
+  "validateAdvertisingCopy(copy, 'Campaign copy')",
+  "if (!bool(body.advertisingReviewed))"
 ].forEach((control) => {
   if (!legal.includes(control)) errors.push(`retail-legal-controls.js: missing control ${control}`);
 });
 
+requireText('views/retail/layout.html', 'This website and its advertising are intended only for Washington adults 21+', 'every public page must carry a prominent 21+ advertising notice');
+requireText('views/retail/layout.html', 'aria-label="Adults only and pickup-only notice"', 'sitewide advertising notice must be exposed to assistive technology');
 requireText('views/retail/admin.html', 'name="advertisingReviewed"', 'staff must approve advertising compliance before activation');
+requireText('views/retail/admin.html', 'name="advertisingReviewed" required><span>I reviewed the campaign', 'campaign drafts require a separate advertising review attestation');
+requireText('views/retail/admin.html', 'do not encourage overconsumption', 'staff review language must cover overconsumption');
+requireText('views/retail/admin.html', 'government endorsement', 'staff review language must cover false government endorsement');
+requireText('views/retail/admin.html', 'alcohol, tobacco, nicotine, or unsafe driving', 'staff review language must cover prohibited associations');
 requireText('public/js/retail-admin.js', 'data-v="acquisitionCost"', 'staff must record acquisition cost');
 requireText('public/js/retail-admin.js', 'data-v="limitCategory"', 'staff must assign purchase-limit category');
 requireText('views/retail/admin.html', 'name="idVerified"', 'staff completion form must record in-person ID verification');
