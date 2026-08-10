@@ -21,20 +21,20 @@
 </head>
 <body>
   <div class="age-gate" data-age-gate>
-    <div class="age-card" role="dialog" aria-modal="true" aria-labelledby="age-title">
+    <div class="age-card" role="dialog" aria-modal="true" aria-labelledby="age-title" aria-describedby="age-description age-legal" tabindex="-1">
       <span class="age-mark">21+</span>
       <p class="eyebrow">Licensed Washington cannabis retailer</p>
       <h1 id="age-title">Are you 21 or older?</h1>
-      <p>This site displays cannabis products intended for adults in Washington. A valid, unexpired government-issued ID is required at pickup.</p>
+      <p id="age-description">This site displays cannabis products intended for adults in Washington. A valid, unexpired government-issued ID is required at pickup.</p>
       <div class="age-actions">
-        <button class="button primary" type="button" data-age-enter>Yes, enter</button>
-        <a class="button secondary" href="https://www.google.com">No, leave</a>
+        <button class="button primary" type="button" data-age-enter>I am 21 or older — Enter</button>
+        <a class="button secondary" href="https://www.google.com/" rel="noreferrer" data-age-exit>No, exit this website</a>
       </div>
-      <p class="small">No cannabis is sold online. Reservations must be paid for and completed inside the licensed store.</p>
+      <p class="small" id="age-legal">No cannabis is sold online. Reservations must be paid for and completed inside the licensed store. Entering this website does not verify your identity or age for pickup.</p>
     </div>
   </div>
 
-  <div class="site-shell" data-site-shell>
+  <div class="site-shell" data-site-shell inert aria-hidden="true">
     <header class="site-header">
       <a class="brand" href="/">{{siteName}}</a>
       <nav aria-label="Primary navigation">

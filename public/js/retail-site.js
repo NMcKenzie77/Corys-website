@@ -4,7 +4,10 @@
   var AGE_KEY = 'dispensary_age_21_v1';
   var CART_KEY = 'dispensary_pickup_cart_v1';
   var gate = document.querySelector('[data-age-gate]');
+  var gateCard = gate && gate.querySelector('.age-card');
   var enter = document.querySelector('[data-age-enter]');
+  var exit = document.querySelector('[data-age-exit]');
+  var siteShell = document.querySelector('[data-site-shell]');
 
   function readCart() {
     try {
@@ -58,18 +61,70 @@
 
   window.RetailCart = { get: readCart, set: writeCart, add: addItem, update: updateItem, clear: clearCart, money: money };
 
-  var verified = false;
-  try { verified = localStorage.getItem(AGE_KEY) === 'yes'; } catch (_error) { /* storage unavailable */ }
-  if (verified && gate) gate.hidden = true;
-  if (!verified) document.body.classList.add('gated');
+  function setSiteAvailable(available) {
+    if (!siteShell) return;
+    if (available) {
+      siteShell.removeAttribute('inert');
+      siteShell.setAttribute('aria-hidden', 'false');
+    } else {
+      siteShell.setAttribute('inert', '');
+      siteShell.setAttribute('aria-hidden', 'true');
+    }
+  }
 
-  if (enter) {
-    enter.addEventListener('click', function () {
-      try { localStorage.setItem(AGE_KEY, 'yes'); } catch (_error) { /* storage unavailable */ }
-      if (gate) gate.hidden = true;
-      document.body.classList.remove('gated');
+  function focusableInGate() {
+    return gate ? Array.prototype.slice.call(gate.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')) : [];
+  }
+
+  function trapGateFocus(event) {
+    if (!gate || gate.hidden || event.key !== 'Tab') return;
+    var focusable = focusableInGate();
+    if (!focusable.length) {
+      event.preventDefault();
+      if (gateCard) gateCard.focus();
+      return;
+    }
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function passAgeGate() {
+    try { sessionStorage.setItem(AGE_KEY, 'yes'); } catch (_error) { /* storage unavailable */ }
+    if (gate) gate.hidden = true;
+    setSiteAvailable(true);
+    document.body.classList.remove('gated');
+    var target = document.querySelector('[data-site-shell] a, [data-site-shell] button, [data-site-shell] input, [data-site-shell] select, [data-site-shell] textarea');
+    if (target) target.focus();
+  }
+
+  var verified = false;
+  try { verified = sessionStorage.getItem(AGE_KEY) === 'yes'; } catch (_error) { /* storage unavailable */ }
+  if (verified) {
+    if (gate) gate.hidden = true;
+    setSiteAvailable(true);
+  } else {
+    setSiteAvailable(false);
+    document.body.classList.add('gated');
+    window.setTimeout(function () {
+      if (enter) enter.focus();
+      else if (gateCard) gateCard.focus();
+    }, 0);
+  }
+
+  if (enter) enter.addEventListener('click', passAgeGate);
+  if (exit) {
+    exit.addEventListener('click', function () {
+      try { sessionStorage.removeItem(AGE_KEY); } catch (_error) { /* storage unavailable */ }
     });
   }
+  document.addEventListener('keydown', trapGateFocus);
 
   updateCounts();
 })();
