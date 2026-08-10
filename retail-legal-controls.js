@@ -12,7 +12,11 @@ const LIMITS = {
 };
 const LIMIT_CATEGORIES = Object.keys(LIMITS);
 const CLAIM_PATTERN = /\b(cure|cures|cured|curing|treat|treats|treated|treating|heal|heals|healed|healing|therapeutic|prevents?|diagnos(?:e|es|ed|ing)|medical benefit)\b/i;
-const CHILD_APPEAL_PATTERN = /\b(kids?|children|child|cartoon|toy|candy[- ]?themed|school|teen|youth|mascot)\b/i;
+const CHILD_APPEAL_PATTERN = /\b(kids?|children|child|cartoon|toy|candy[- ]?themed|school|teen|youth|mascot|playground|storybook|comic[- ]?book)\b/i;
+const OVERCONSUMPTION_PATTERN = /\b(overconsum(?:e|es|ed|ing|ption)|consume more|use more|all you can|unlimited (?:hits?|dabs?|edibles?)|get wasted|maximum intoxication|strongest high|highest ever)\b/i;
+const ASSOCIATION_PATTERN = /\b(cigarettes?|cigars?|tobacco|nicotine|vaping nicotine|beer|wine|liquor|cocktails?|get drunk|drunk driving|drive high|road trip high)\b/i;
+const FALSE_ENDORSEMENT_PATTERN = /\b(state[- ]approved|government[- ]approved|lcb[- ]approved|ws?lcb[- ]approved|official washington cannabis|endorsed by (?:the )?state)\b/i;
+const MISLEADING_PATTERN = /\b(100% safe|completely safe|risk[- ]?free|no health risks?|guaranteed (?:effect|effects|high|results?)|works every time)\b/i;
 const FORBIDDEN_ORDER_FIELDS = [
   'shippingAddress', 'shipAddress', 'deliveryAddress', 'address1', 'address2', 'city', 'state',
   'postalCode', 'delivery', 'deliveryMethod', 'carrier', 'trackingNumber', 'paymentToken',
@@ -65,19 +69,35 @@ async function ensureRetailLegalSchema() {
   `);
 }
 
+function validateAdvertisingCopy(copy, context = 'Cannabis advertising') {
+  if (CLAIM_PATTERN.test(copy)) {
+    throw httpError(`${context} may not claim curative, therapeutic, diagnostic, or disease-prevention effects.`);
+  }
+  if (CHILD_APPEAL_PATTERN.test(copy)) {
+    throw httpError(`${context} may not target or contain content especially appealing to people under 21.`);
+  }
+  if (OVERCONSUMPTION_PATTERN.test(copy)) {
+    throw httpError(`${context} may not encourage overconsumption or excessive intoxication.`);
+  }
+  if (ASSOCIATION_PATTERN.test(copy)) {
+    throw httpError(`${context} may not associate cannabis with alcohol, tobacco, nicotine, or unsafe motor-vehicle use.`);
+  }
+  if (FALSE_ENDORSEMENT_PATTERN.test(copy)) {
+    throw httpError(`${context} may not imply approval or endorsement by Washington or a government agency.`);
+  }
+  if (MISLEADING_PATTERN.test(copy)) {
+    throw httpError(`${context} may not contain false, misleading, or unsupported safety and effect claims.`);
+  }
+}
+
 function validateProductCopy(body) {
   const combined = [body.name, body.brand, body.description, body.strainType, body.productForm]
     .map((value) => text(value, 5000))
     .join(' ');
 
-  if (CLAIM_PATTERN.test(combined)) {
-    throw httpError('Public cannabis product copy may not claim curative or therapeutic effects.');
-  }
-  if (CHILD_APPEAL_PATTERN.test(combined)) {
-    throw httpError('Public cannabis advertising may not be designed to appeal to people under 21.');
-  }
+  validateAdvertisingCopy(combined, 'Public cannabis product copy');
   if (body.active !== false && !bool(body.advertisingReviewed)) {
-    throw httpError('Confirm that the product name, copy, and image were reviewed for Washington advertising compliance.');
+    throw httpError('Confirm that the product name, copy, image, and presentation were reviewed for Washington advertising compliance.');
   }
 
   const variants = Array.isArray(body.variants) ? body.variants : [];
@@ -261,10 +281,13 @@ function registerRetailLegalControls(app) {
 
   app.post('/api/admin/retail/campaigns', (req, _res, next) => {
     try {
-      const copy = [req.body && req.body.subject, req.body && req.body.headline, req.body && req.body.bodyText]
+      const body = req.body || {};
+      const copy = [body.subject, body.headline, body.bodyText, body.ctaLabel]
         .map((value) => text(value, 10000)).join(' ');
-      if (CLAIM_PATTERN.test(copy)) throw httpError('Campaign copy may not claim curative or therapeutic effects.');
-      if (CHILD_APPEAL_PATTERN.test(copy)) throw httpError('Campaign copy may not target or appeal to people under 21.');
+      validateAdvertisingCopy(copy, 'Campaign copy');
+      if (!bool(body.advertisingReviewed)) {
+        throw httpError('Confirm that the campaign copy, imagery, audience, and call to action were reviewed for Washington advertising compliance.');
+      }
       next();
     } catch (error) {
       next(error);
