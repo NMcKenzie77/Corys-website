@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Customer CRM</title>
+  <link rel="stylesheet" href="/css/dispensary.css">
+  <link rel="stylesheet" href="/css/retail-customers.css">
+</head>
+<body class="admin-body">
+  <div class="admin-login" data-crm-login>
+    <form class="login-card" data-crm-login-form>
+      <p class="eyebrow" data-site-name>Dispensary</p>
+      <h1>Customer CRM</h1>
+      <p>Sign in to view customer profiles, pickup history, notes, and marketing consent.</p>
+      <label class="field"><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+      <button class="button dark" type="submit">Sign in</button>
+      <p class="status" data-crm-login-status></p>
+    </form>
+  </div>
+
+  <div class="admin-shell" data-crm-shell hidden>
+    <aside class="admin-sidebar crm-sidebar">
+      <a class="brand" data-site-name href="/">Dispensary</a>
+      <nav class="crm-nav">
+        <a href="/admin">Operations dashboard</a>
+        <a class="active" href="/admin/customers/">Customer CRM</a>
+        <a href="/menu" target="_blank" rel="noopener">View public menu</a>
+      </nav>
+      <div class="crm-sidebar-footer">
+        <small>Protected staff URL</small>
+        <code>/admin/customers/</code>
+        <button class="button secondary" type="button" data-crm-logout>Sign out</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-top crm-top">
+        <div>
+          <p class="eyebrow">Customer relationship management</p>
+          <h1>Customers</h1>
+          <p class="small">Every customer profile has a bookmarkable internal URL. Staff must be signed in to view it.</p>
+        </div>
+        <strong data-crm-admin-email></strong>
+      </header>
+
+      <section class="metrics crm-metrics" aria-label="Customer metrics">
+        <article class="metric"><span>Customers shown</span><strong data-crm-metric="customers">0</strong></article>
+        <article class="metric"><span>Repeat customers</span><strong data-crm-metric="repeat">0</strong></article>
+        <article class="metric"><span>WA subscribers</span><strong data-crm-metric="subscribers">0</strong></article>
+        <article class="metric"><span>Recorded spend</span><strong data-crm-metric="spend">$0.00</strong></article>
+      </section>
+
+      <section class="admin-section">
+        <div class="admin-actions crm-toolbar">
+          <div>
+            <p class="eyebrow">Customer directory</p>
+            <h2>Search and open a profile</h2>
+          </div>
+          <div class="crm-search-group">
+            <input type="search" placeholder="Search name, email, or phone" aria-label="Search customers" data-crm-search>
+            <button class="button secondary" type="button" data-crm-clear-search>Clear</button>
+          </div>
+        </div>
+
+        <div class="crm-layout">
+          <div class="table-wrap crm-directory">
+            <table>
+              <thead><tr><th>Customer</th><th>Contact</th><th>Orders</th><th>Spend</th><th>Marketing</th><th>Last order</th></tr></thead>
+              <tbody data-crm-customers-table><tr><td colspan="6">Loading customers…</td></tr></tbody>
+            </table>
+          </div>
+
+          <aside class="panel crm-profile" data-crm-profile>
+            <div class="crm-empty-profile">
+              <p class="eyebrow">Customer profile</p>
+              <h2>Select a customer</h2>
+              <p>Open a record to review contact information, order history, internal notes, and consent status.</p>
+            </div>
+          </aside>
+        </div>
+        <p class="status" data-crm-page-status></p>
+      </section>
+    </main>
+  </div>
+
+  <template data-crm-profile-template>
+    <div class="crm-profile-head">
+      <div><p class="eyebrow">Customer profile</p><h2 data-profile-name></h2></div>
+      <button class="button secondary" type="button" data-copy-profile-url>Copy profile URL</button>
+    </div>
+    <div class="crm-profile-contact" data-profile-contact></div>
+    <div class="crm-profile-stats" data-profile-stats></div>
+    <form data-crm-customer-form>
+      <input type="hidden" name="customerId">
+      <label class="field"><span>Internal notes</span><textarea name="notes" rows="5" placeholder="Service preferences, follow-up notes, or other appropriate internal context"></textarea></label>
+      <label class="check"><input type="checkbox" name="marketingOptIn"><span>Documented optional marketing consent</span></label>
+      <label class="check"><input type="checkbox" name="marketingState" value="WA"><span>Washington residency documented for marketing</span></label>
+      <div class="actions"><button class="button dark" type="submit">Save customer</button></div>
+      <p class="status" data-profile-save-status></p>
+    </form>
+    <div class="crm-orders">
+      <div class="crm-section-head"><h3>Pickup history</h3><a href="/admin#orders">Open pickup operations</a></div>
+      <div class="table-wrap"><table><thead><tr><th>Order</th><th>Status</th><th>Total</th><th>Pickup</th><th>Date</th></tr></thead><tbody data-profile-orders></tbody></table></div>
+    </div>
+  </template>
+
+  <script src="/js/retail-customers.js"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - agent/dispensary-retail-pivot
+      - agent/dedicated-customer-crm
 
 jobs:
   validate:
@@ -40,6 +41,7 @@ jobs:
           node --check public/js/retail-pickup.js
           node --check public/js/retail-privacy.js
           node --check public/js/retail-admin.js
+          node --check public/js/retail-customers.js
 
       - name: Validate retail legal structure
         run: node scripts/validate-retail.js
